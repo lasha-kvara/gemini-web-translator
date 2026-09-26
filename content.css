@@ -33,9 +33,8 @@
 }
 
 .gemini-floating-btn svg {
-  width: 16px;
-  height: 16px;
-  fill: #ffffff;
+  width: 17px;
+  height: 17px;
 }
 
 @keyframes gemini-pop {
@@ -351,7 +350,6 @@
 .gemini-page-banner-left svg {
   width: 18px;
   height: 18px;
-  fill: #1a73e8;
   flex-shrink: 0;
 }
 

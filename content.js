@@ -79,10 +79,14 @@
     shadowRoot.appendChild(styleLink);
   }
 
-  // Gemini Sparkle SVG Icon
+  // Gemini Bilingual Bridge SVG Icon (A ⇄ ა)
   const GEMINI_ICON_SVG = `
-    <svg viewBox="0 0 24 24">
-      <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" />
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1.5" y="2.5" width="11" height="13.5" rx="3" fill="#1a73e8" />
+      <text x="7" y="12.5" font-size="9" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">A</text>
+      <rect x="9.5" y="6.5" width="13" height="15" rx="3.5" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8" />
+      <text x="16" y="17.8" font-size="11" font-weight="900" fill="#1a73e8" text-anchor="middle" font-family="'Segoe UI', Roboto, sans-serif">ა</text>
+      <circle cx="10" cy="5.5" r="1.5" fill="#facc15" />
     </svg>
   `;
 

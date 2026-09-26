@@ -114,15 +114,11 @@ function getGenerationConfigForModel(modelName) {
 
   if (modelName.includes("3.8") || modelName.includes("3.7") || modelName.includes("3.1-pro")) {
     config.thinkingConfig = {
-      thinkingLevel: "LOW"
+      thinkingLevel: "low"
     };
-  } else if (modelName.includes("3.6") || modelName.includes("3.5-flash")) {
+  } else if (modelName.includes("3.6") || modelName.includes("3.5-flash") || modelName.includes("flash-lite")) {
     config.thinkingConfig = {
-      thinkingLevel: "MINIMAL"
-    };
-  } else if (modelName.includes("flash-lite")) {
-    config.thinkingConfig = {
-      thinkingLevel: "MINIMAL"
+      thinkingLevel: "minimal"
     };
   } else if (modelName.includes("gemini-2.5")) {
     config.thinkingConfig = {
@@ -388,19 +384,15 @@ async function handleStreamingTranslation(params, port, abortController) {
         signal: abortController.signal
       });
 
-      // If the model rejects thinkingConfig (e.g. earlier endpoint version), retry without it
-      if (!response.ok && payload.generationConfig?.thinkingConfig) {
-        const errorData = await response.clone().json().catch(() => ({}));
-        const errorMsg = errorData?.error?.message || "";
-        if (response.status === 400 && (errorMsg.toLowerCase().includes("thinking") || errorMsg.includes("Thinking"))) {
-          delete payload.generationConfig.thinkingConfig;
-          response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-            signal: abortController.signal
-          });
-        }
+      // If the model rejects request with HTTP 400 and thinkingConfig was included, immediately retry without it!
+      if (!response.ok && response.status === 400 && payload.generationConfig?.thinkingConfig) {
+        delete payload.generationConfig.thinkingConfig;
+        response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: abortController.signal
+        });
       }
 
       clearTimeout(timeoutId);
@@ -418,20 +410,18 @@ async function handleStreamingTranslation(params, port, abortController) {
           return;
         }
 
-        const isHighDemand =
-          response.status === 503 ||
-          response.status === 429 ||
-          errorMsg.toLowerCase().includes("high demand") ||
-          errorMsg.toLowerCase().includes("resource_exhausted") ||
-          errorMsg.toLowerCase().includes("temporarily unavailable");
+        lastError = `${curModel}: ${errorMsg}`;
 
-        if (isHighDemand) {
-          lastError = "მაღალი დატვირთვა (High Demand)";
-          console.warn(`Model ${curModel} experiencing high demand, falling back...`);
-          continue; // Switch to next model
-        } else {
-          console.warn(`Model ${curModel} error: ${errorMsg}`);
+        // If failover is enabled and there are other candidates, try next model
+        if (enableFailover && mIdx < modelsToTry.length - 1) {
+          console.warn(`Model ${curModel} failed (${errorMsg}), failing over to ${modelsToTry[mIdx + 1]}...`);
           continue;
+        } else {
+          port.postMessage({
+            type: "error",
+            error: `მოდელი '${curModel}' ვერ პასუხობს: ${errorMsg}`
+          });
+          return;
         }
       }
 
@@ -469,7 +459,8 @@ async function handleStreamingTranslation(params, port, abortController) {
                     text: part.text,
                     accumulated: accumulatedText,
                     model: curModel,
-                    isFallback: isFallback
+                    isFallback: isFallback,
+                    fallbackReason: isFallback ? `${initialModel} დროებით მიუწვდომელი იყო (${lastError})` : null
                   });
                 }
               }
@@ -500,6 +491,7 @@ async function handleStreamingTranslation(params, port, abortController) {
           type: "done",
           model: curModel,
           isFallback: isFallback,
+          fallbackReason: isFallback ? `${initialModel} დროებით მიუწვდომელი იყო (${lastError})` : null,
           isCached: false,
           targetLanguage: targetLanguage
         });
@@ -599,17 +591,13 @@ async function handleTranslation(params) {
         });
 
         // If the model rejects thinkingConfig, retry without it
-        if (!response.ok && payload.generationConfig?.thinkingConfig) {
-          const errorData = await response.clone().json().catch(() => ({}));
-          const errorMsg = errorData?.error?.message || "";
-          if (response.status === 400 && (errorMsg.toLowerCase().includes("thinking") || errorMsg.includes("Thinking"))) {
-            delete payload.generationConfig.thinkingConfig;
-            response = await fetch(url, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload)
-            });
-          }
+        if (!response.ok && response.status === 400 && payload.generationConfig?.thinkingConfig) {
+          delete payload.generationConfig.thinkingConfig;
+          response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
         }
 
         const data = await response.json();
@@ -777,17 +765,13 @@ ${JSON.stringify(missingTexts)}`;
         body: JSON.stringify(payload)
       });
 
-      if (!response.ok && payload.generationConfig?.thinkingConfig) {
-        const errorData = await response.clone().json().catch(() => ({}));
-        const errorMsg = errorData?.error?.message || "";
-        if (response.status === 400 && (errorMsg.toLowerCase().includes("thinking") || errorMsg.includes("Thinking"))) {
-          delete payload.generationConfig.thinkingConfig;
-          response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-        }
+      if (!response.ok && response.status === 400 && payload.generationConfig?.thinkingConfig) {
+        delete payload.generationConfig.thinkingConfig;
+        response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
       }
 
       const data = await response.json();
@@ -888,11 +872,20 @@ async function testGeminiApiKey(apiKey, modelName) {
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const response = await fetch(url, {
+      let response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+
+      if (!response.ok && response.status === 400 && payload.generationConfig?.thinkingConfig) {
+        delete payload.generationConfig.thinkingConfig;
+        response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      }
 
       const data = await response.json();
       if (response.ok) {

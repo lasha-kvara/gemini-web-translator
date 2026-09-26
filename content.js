@@ -384,8 +384,14 @@
                   badge.textContent = `${msg.model.replace("gemini-", "")} (auto)`;
                   badge.style.background = "#fef3c7";
                   badge.style.color = "#b45309";
+                  if (msg.fallbackReason) {
+                    badge.title = msg.fallbackReason;
+                  }
                 } else {
                   badge.textContent = msg.model.replace("gemini-", "");
+                  badge.style.background = "";
+                  badge.style.color = "";
+                  badge.title = "";
                 }
               }
 
@@ -399,10 +405,19 @@
                   badge.textContent = "⚡ ქეში (0ms)";
                   badge.style.background = "#dcfce7";
                   badge.style.color = "#15803d";
+                  badge.title = "შედეგი ამოღებულია ლოკალური ქეშიდან";
                 } else if (msg.isFallback) {
                   badge.textContent = `${msg.model.replace("gemini-", "")} (auto)`;
+                  badge.style.background = "#fef3c7";
+                  badge.style.color = "#b45309";
+                  if (msg.fallbackReason) {
+                    badge.title = msg.fallbackReason;
+                  }
                 } else if (msg.model) {
                   badge.textContent = msg.model.replace("gemini-", "");
+                  badge.style.background = "";
+                  badge.style.color = "";
+                  badge.title = "";
                 }
               }
             } else if (msg.type === "error") {

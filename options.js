@@ -143,11 +143,15 @@ document.addEventListener("DOMContentLoaded", () => {
             modelSelect.appendChild(opt);
           });
 
-          // Restore previous selection if present
+          // Restore previous selection if present, or keep currentSelected option
           if (Array.from(modelSelect.options).some((o) => o.value === currentSelected)) {
             modelSelect.value = currentSelected;
-          } else if (Array.from(modelSelect.options).some((o) => o.value === "gemini-3.8-flash")) {
-            modelSelect.value = "gemini-3.8-flash";
+          } else if (currentSelected) {
+            const opt = document.createElement("option");
+            opt.value = currentSelected;
+            opt.textContent = `${currentSelected} (არჩეული)`;
+            modelSelect.insertBefore(opt, modelSelect.firstChild);
+            modelSelect.value = currentSelected;
           }
 
           modelHint.style.color = "#16a34a";

@@ -28,6 +28,36 @@ document.addEventListener("DOMContentLoaded", () => {
   const resetPromptBtn = document.getElementById("resetPromptBtn");
   const saveBtn = document.getElementById("saveBtn");
   const saveStatus = document.getElementById("saveStatus");
+  const cacheCountText = document.getElementById("cacheCountText");
+  const clearCacheBtn = document.getElementById("clearCacheBtn");
+
+  function updateCacheStats() {
+    if (!cacheCountText) return;
+    chrome.runtime.sendMessage({ action: "getCacheStats" }, (res) => {
+      if (res && res.success) {
+        cacheCountText.textContent = `${res.count || 0} ფრაგმენტი`;
+      } else {
+        cacheCountText.textContent = "0 ფრაგმენტი";
+      }
+    });
+  }
+
+  updateCacheStats();
+
+  if (clearCacheBtn) {
+    clearCacheBtn.addEventListener("click", () => {
+      clearCacheBtn.textContent = "⏳ იშლება...";
+      clearCacheBtn.disabled = true;
+      chrome.runtime.sendMessage({ action: "clearCache" }, () => {
+        clearCacheBtn.textContent = "✓ გასუფთავებულია";
+        updateCacheStats();
+        setTimeout(() => {
+          clearCacheBtn.textContent = "🗑️ ქეშის გასუფთავება";
+          clearCacheBtn.disabled = false;
+        }, 1500);
+      });
+    });
+  }
 
   // Load saved options
   chrome.storage.sync.get(

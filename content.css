@@ -428,6 +428,18 @@
   background: #1557b0;
 }
 
+.gemini-banner-btn.secondary {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+.gemini-banner-btn.secondary:hover {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #86efac;
+}
+
 .gemini-banner-btn.danger {
   color: #b91c1c;
   background: #fee2e2;

@@ -238,7 +238,7 @@
   /**
    * Show Translation Bubble with Real-Time Streaming
    */
-  function showBubble(rect, textToTranslate, targetLangOverride) {
+  function showBubble(rect, textToTranslate, targetLangOverride, bypassCache = false) {
     initHost();
     removeBubble();
     removeFloatingBtn();
@@ -314,6 +314,10 @@
                 <svg viewBox="0 0 24 24"><path d="M3 9V15H7L12 20V4L7 9H3ZM16.5 12C16.5 10.23 15.48 8.71 14 7.97V16.02C15.48 15.29 16.5 13.77 16.5 12ZM14 3.23V5.29C16.89 6.15 19 8.83 19 12C19 15.17 16.89 17.85 14 18.71V20.77C18.01 19.86 21 16.28 21 12C21 7.72 18.01 4.14 14 3.23Z"/></svg>
                 <span>მოსმენა</span>
               </button>
+              <button class="gemini-action-btn" id="geminiRetryBtn" title="ხელახლა თარგმნა (ქეშის იგნორირებით)">
+                <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                <span>ხელახლა</span>
+              </button>
             </div>
             <div id="geminiCopyStatus"></div>
           </div>
@@ -351,6 +355,13 @@
           else if (activeLang.includes("Russian")) utterance.lang = "ru-RU";
           window.speechSynthesis.speak(utterance);
         });
+
+        const retryBtn = bubbleElement.querySelector("#geminiRetryBtn");
+        if (retryBtn) {
+          retryBtn.addEventListener("click", () => {
+            showBubble(rect, textToTranslate, activeLang, true);
+          });
+        }
 
         // Connect Real-Time Streaming Port
         try {
@@ -414,7 +425,8 @@
           activeStreamPort.postMessage({
             action: "streamTranslate",
             text: textToTranslate,
-            targetLang: activeLang
+            targetLang: activeLang,
+            bypassCache: bypassCache
           });
         } catch (portErr) {
           console.warn("Stream connection fallback:", portErr);
@@ -561,7 +573,7 @@
     pageTranslationActive = false;
   }
 
-  async function startFullPageTranslation() {
+  async function startFullPageTranslation(bypassCache = false) {
     if (!isExtensionContextValid()) {
       return;
     }
@@ -585,6 +597,7 @@
       </div>
       <div class="gemini-page-banner-actions">
         <button class="gemini-banner-btn" id="geminiToggleOriginalBtn" style="display: none;">ორიგინალის ჩვენება</button>
+        <button class="gemini-banner-btn" id="geminiRetryPageBtn" style="display: none;" title="მთლიანი გვერდის ხელახლა თარგმნა (ქეშის იგნორირებით)">🔄 ხელახლა</button>
         <button class="gemini-banner-btn danger" id="geminiCancelPageBtn">გაუქმება</button>
         <button class="gemini-banner-close" id="geminiCloseBannerBtn" title="დახურვა">&times;</button>
       </div>
@@ -656,7 +669,8 @@
               {
                 action: "translateBatch",
                 texts: texts,
-                targetLang: targetLanguage
+                targetLang: targetLanguage,
+                bypassCache: bypassCache
               },
               (response) => resolve(response)
             );
@@ -704,6 +718,19 @@
     cancelBtn.style.display = "none";
     toggleBtn.style.display = "inline-flex";
     toggleBtn.textContent = "ორიგინალის ჩვენება";
+
+    const retryPageBtn = pageBannerElement.querySelector("#geminiRetryPageBtn");
+    if (retryPageBtn) {
+      retryPageBtn.style.display = "inline-flex";
+      retryPageBtn.onclick = () => {
+        for (const n of allTrackedNodes) {
+          if (originalNodeValues.has(n)) {
+            n.nodeValue = originalNodeValues.get(n);
+          }
+        }
+        startFullPageTranslation(true);
+      };
+    }
 
     toggleBtn.addEventListener("click", () => {
       if (!isPageShowingOriginal) {

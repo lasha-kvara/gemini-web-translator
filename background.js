@@ -38,8 +38,11 @@ const CANDIDATE_FALLBACK_MODELS = [
 const translationCache = new Map();
 const MAX_CACHE_SIZE = 150;
 
-function getCacheKey(text, targetLang, tone) {
-  return `${targetLang || "ka"}:::${tone || "natural"}:::${text.trim()}`;
+function getCacheKey(text, targetLang, tone, model) {
+  const m = model || "gemini-3.8-flash";
+  const l = targetLang || "Georgian (ქართული)";
+  const t = tone || "natural";
+  return `gtc:::${m}:::${l}:::${t}:::${text.trim()}`;
 }
 
 async function getFromCache(key) {
@@ -67,6 +70,31 @@ async function saveToCache(key, data) {
   try {
     chrome.storage.local.set({ [key]: data }).catch(() => {});
   } catch (e) {}
+}
+
+async function clearTranslationCache() {
+  translationCache.clear();
+  try {
+    const all = await chrome.storage.local.get(null);
+    const keysToRemove = Object.keys(all).filter((k) => k.startsWith("gtc:::") || k.includes(":::"));
+    if (keysToRemove.length > 0) {
+      await chrome.storage.local.remove(keysToRemove);
+    }
+    return { success: true, count: keysToRemove.length };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+async function getCacheStats() {
+  try {
+    const all = await chrome.storage.local.get(null);
+    const keys = Object.keys(all).filter((k) => k.startsWith("gtc:::") || k.includes(":::"));
+    const count = Math.max(translationCache.size, keys.length);
+    return { success: true, count: count };
+  } catch (e) {
+    return { success: true, count: translationCache.size };
+  }
 }
 
 /**
@@ -255,13 +283,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ success: true });
     return false;
   }
+
+  if (request.action === "clearCache") {
+    clearTranslationCache()
+      .then(sendResponse)
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.action === "getCacheStats") {
+    getCacheStats()
+      .then(sendResponse)
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
 });
 
 /**
  * Handle Real-Time Streaming Translation
  */
 async function handleStreamingTranslation(params, port, abortController) {
-  const { text, targetLang } = params;
+  const { text, targetLang, bypassCache } = params;
   if (!text || !text.trim()) {
     port.postMessage({ type: "error", error: "ტექსტი ცარიელია." });
     return;
@@ -281,20 +323,23 @@ async function handleStreamingTranslation(params, port, abortController) {
 
   const targetLanguage = targetLang || settings.targetLanguage || "Georgian (ქართული)";
   const tone = settings.tone || "natural";
+  const initialModel = settings.model || "gemini-3.8-flash";
 
-  // Check LRU Cache first (0ms instant return!)
-  const cacheKey = getCacheKey(text, targetLanguage, tone);
-  const cachedData = await getFromCache(cacheKey);
-  if (cachedData) {
-    port.postMessage({ type: "chunk", text: cachedData.translation, accumulated: cachedData.translation });
-    port.postMessage({
-      type: "done",
-      model: cachedData.model,
-      isFallback: false,
-      isCached: true,
-      targetLanguage: targetLanguage
-    });
-    return;
+  // Check LRU Cache first (0ms instant return!) unless bypassCache is requested
+  const cacheKey = getCacheKey(text, targetLanguage, tone, initialModel);
+  if (!bypassCache) {
+    const cachedData = await getFromCache(cacheKey);
+    if (cachedData) {
+      port.postMessage({ type: "chunk", text: cachedData.translation, accumulated: cachedData.translation });
+      port.postMessage({
+        type: "done",
+        model: cachedData.model,
+        isFallback: false,
+        isCached: true,
+        targetLanguage: targetLanguage
+      });
+      return;
+    }
   }
 
   let toneGuidance = "";
@@ -310,7 +355,6 @@ async function handleStreamingTranslation(params, port, abortController) {
   const prompt = `Translate the entire following source text completely and faithfully into ${targetLanguage}. Translate all paragraphs in full without omitting or summarizing anything:\n\n${text}`;
 
   const enableFailover = settings.enableFailover !== false;
-  const initialModel = settings.model || "gemini-3.8-flash";
   const modelsToTry = enableFailover
     ? [initialModel, ...CANDIDATE_FALLBACK_MODELS.filter((m) => m !== initialModel)]
     : [initialModel];
@@ -437,12 +481,20 @@ async function handleStreamingTranslation(params, port, abortController) {
       }
 
       if (accumulatedText.trim().length > 0) {
-        // Save to LRU cache
-        saveToCache(cacheKey, {
+        // Save to LRU cache with model-aware key
+        const finalKey = getCacheKey(text, targetLanguage, tone, curModel);
+        saveToCache(finalKey, {
           translation: accumulatedText.trim(),
           model: curModel,
           timestamp: Date.now()
         });
+        if (curModel !== initialModel) {
+          saveToCache(cacheKey, {
+            translation: accumulatedText.trim(),
+            model: curModel,
+            timestamp: Date.now()
+          });
+        }
 
         port.postMessage({
           type: "done",
@@ -471,7 +523,7 @@ async function handleStreamingTranslation(params, port, abortController) {
  * Standard Non-Streaming Translation (Fallback)
  */
 async function handleTranslation(params) {
-  const { text, targetLang } = params;
+  const { text, targetLang, bypassCache } = params;
   if (!text || !text.trim()) {
     return { success: false, error: "ტექსტი ცარიელია." };
   }
@@ -489,19 +541,22 @@ async function handleTranslation(params) {
 
   const targetLanguage = targetLang || settings.targetLanguage || "Georgian (ქართული)";
   const tone = settings.tone || "natural";
+  const initialModel = settings.model || "gemini-3.8-flash";
 
-  // Check cache
-  const cacheKey = getCacheKey(text, targetLanguage, tone);
-  const cached = await getFromCache(cacheKey);
-  if (cached) {
-    return {
-      success: true,
-      translation: cached.translation,
-      model: cached.model,
-      isFallback: false,
-      isCached: true,
-      targetLanguage: targetLanguage
-    };
+  // Check cache unless bypassCache is requested
+  const cacheKey = getCacheKey(text, targetLanguage, tone, initialModel);
+  if (!bypassCache) {
+    const cached = await getFromCache(cacheKey);
+    if (cached) {
+      return {
+        success: true,
+        translation: cached.translation,
+        model: cached.model,
+        isFallback: false,
+        isCached: true,
+        targetLanguage: targetLanguage
+      };
+    }
   }
 
   let toneGuidance = "";
@@ -517,7 +572,6 @@ async function handleTranslation(params) {
   const prompt = `Translate the entire following source text completely and faithfully into ${targetLanguage}. Translate all paragraphs in full without omitting or summarizing anything:\n\n${text}`;
 
   const enableFailover = settings.enableFailover !== false;
-  const initialModel = settings.model || "gemini-3.8-flash";
   const modelsToTry = enableFailover
     ? [initialModel, ...CANDIDATE_FALLBACK_MODELS.filter((m) => m !== initialModel)]
     : [initialModel];
@@ -569,11 +623,19 @@ async function handleTranslation(params) {
             .join("");
 
           if (translatedText) {
-            saveToCache(cacheKey, {
+            const finalKey = getCacheKey(text, targetLanguage, tone, curModel);
+            saveToCache(finalKey, {
               translation: translatedText.trim(),
               model: curModel,
               timestamp: Date.now()
             });
+            if (curModel !== initialModel) {
+              saveToCache(cacheKey, {
+                translation: translatedText.trim(),
+                model: curModel,
+                timestamp: Date.now()
+              });
+            }
 
             return {
               success: true,
@@ -637,7 +699,7 @@ async function handleTranslation(params) {
  * Translates an array of text snippets preserving order and structure
  */
 async function handleBatchTranslation(params) {
-  const { texts, targetLang } = params;
+  const { texts, targetLang, bypassCache } = params;
   if (!texts || !Array.isArray(texts) || texts.length === 0) {
     return { success: false, error: "ტექსტების მასივი ცარიელია." };
   }
@@ -655,21 +717,24 @@ async function handleBatchTranslation(params) {
 
   const targetLanguage = targetLang || settings.targetLanguage || "Georgian (ქართული)";
   const tone = settings.tone || "natural";
+  const initialModel = settings.model || "gemini-3.8-flash";
 
-  // Check cache for individual items first (0ms instant hits)
+  // Check cache for individual items first (0ms instant hits) unless bypassCache is requested
   const results = new Array(texts.length);
   const missingIndices = [];
   const missingTexts = [];
 
   for (let i = 0; i < texts.length; i++) {
-    const cacheKey = getCacheKey(texts[i], targetLanguage, tone);
-    const cached = await getFromCache(cacheKey);
-    if (cached && cached.translation) {
-      results[i] = cached.translation;
-    } else {
-      missingIndices.push(i);
-      missingTexts.push(texts[i]);
+    if (!bypassCache) {
+      const cacheKey = getCacheKey(texts[i], targetLanguage, tone, initialModel);
+      const cached = await getFromCache(cacheKey);
+      if (cached && cached.translation) {
+        results[i] = cached.translation;
+        continue;
+      }
     }
+    missingIndices.push(i);
+    missingTexts.push(texts[i]);
   }
 
   if (missingTexts.length === 0) {
@@ -688,7 +753,6 @@ Input JSON array:
 ${JSON.stringify(missingTexts)}`;
 
   const enableFailover = settings.enableFailover !== false;
-  const initialModel = settings.model || "gemini-3.8-flash";
   const modelsToTry = enableFailover
     ? [initialModel, ...CANDIDATE_FALLBACK_MODELS.filter((m) => m !== initialModel)]
     : [initialModel];
@@ -767,12 +831,20 @@ ${JSON.stringify(missingTexts)}`;
               const transVal = String(translatedArray[k]);
               results[origIdx] = transVal;
 
-              const itemCacheKey = getCacheKey(missingTexts[k], targetLanguage, tone);
+              const itemCacheKey = getCacheKey(missingTexts[k], targetLanguage, tone, curModel);
               saveToCache(itemCacheKey, {
                 translation: transVal,
                 model: curModel,
                 timestamp: Date.now()
               });
+              if (curModel !== initialModel) {
+                const itemInitKey = getCacheKey(missingTexts[k], targetLanguage, tone, initialModel);
+                saveToCache(itemInitKey, {
+                  translation: transVal,
+                  model: curModel,
+                  timestamp: Date.now()
+                });
+              }
             }
 
             return {

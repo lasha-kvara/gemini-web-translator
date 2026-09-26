@@ -108,9 +108,20 @@
         <div style="grid-column: 1 / -1; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: #166534; margin-top: 6px;">
           ⚡ <strong>Tier-1 ფუნქციები აქტიურია:</strong><br>
           • <strong>Alt + T</strong> (Mac: <code>Cmd + Shift + T</code>) — მონიშნული ტექსტის მყისიერი თარგმნა კლავიატურით.<br>
-          • <strong>Real-Time Streaming</strong> — სიტყვა-სიტყვა თარგმნა ლოდინის გარეშე.<br>
+          • <strong>Real-Time Streaming</strong> — ცოცხალი თარგმნა ლოდინის გარეშე.<br>
           • <strong>Smart Cache (0ms)</strong> — განმეორებითი თარგმანი იხსნება მომენტალურად API-ის ხარჯვის გარეშე.<br>
+          • <strong>Model-Aware Cache</strong> — მოდელის შეცვლისას ძველი ქეში არ შეგაფერხებთ.<br>
           • <strong>Privacy Guard</strong> — პაროლებისა და მგრძნობიარე ველების ავტომატური დაცვა.
+        </div>
+
+        <div style="grid-column: 1 / -1; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+          <div>
+            <div style="font-weight: 600; color: #1e293b; font-size: 13px;">💾 ლოკალური მეხსიერება (Smart Cache)</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 2px;">ქეშში დამახსოვრებულია: <strong id="cacheCountText" style="color: #1a73e8;">მოწმდება...</strong></div>
+          </div>
+          <button type="button" class="btn-secondary" id="clearCacheBtn" style="padding: 6px 12px; font-size: 12px;">
+            🗑️ ქეშის გასუფთავება
+          </button>
         </div>
       </section>
 

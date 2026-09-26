@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini AI Translator - პარამეტრები</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-area">
+        <img src="icons/icon48.png" alt="Gemini Translator" class="logo">
+        <div>
+          <h1>Gemini AI Translator</h1>
+          <p class="subtitle">პარამეტრები და კონფიგურაცია</p>
+        </div>
+      </div>
+      <div class="status-badge" id="saveStatus"></div>
+    </header>
+
+    <!-- Main Settings Form -->
+    <main class="card">
+      <!-- Section: API Key -->
+      <section class="section">
+        <h2>🔑 Gemini API Key</h2>
+        <p class="description">
+          შეიყვანეთ თქვენი Google AI Studio-ს API Key. თუ ჯერ არ გაქვთ, შეგიძლიათ სრულიად უფასოდ აიღოთ 
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" class="link">Google AI Studio-დან ↗</a>.
+        </p>
+
+        <div class="input-group">
+          <input type="password" id="apiKey" placeholder="AIzaSy..." autocomplete="off">
+          <button type="button" class="btn-secondary" id="toggleApiKey">👁️</button>
+          <button type="button" class="btn-primary" id="testApiKeyBtn">ტესტირება</button>
+        </div>
+        <div id="apiTestResult" class="test-result"></div>
+      </section>
+
+      <hr class="divider">
+
+      <!-- Section: Model & Language -->
+      <section class="section grid-2">
+        <div class="form-group">
+          <div class="label-row">
+            <label for="modelSelect">🤖 Gemini მოდელი</label>
+            <button type="button" class="btn-text" id="fetchModelsBtn" title="Google-ის სერვერიდან ხელმისაწვდომი მოდელების ჩამოტვირთვა">🔄 სიის განახლება API-დან</button>
+          </div>
+          <select id="modelSelect">
+            <option value="gemini-3.8-flash">Gemini 3.8 Flash (რეკომენდებული: უახლესი ფლაგმანი)</option>
+            <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite (⚡ ულტრა-სწრაფი & მინიმალური გადატვირთვა)</option>
+            <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
+            <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+            <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+            <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro Preview (უმაღლესი სიზუსტე & მსჯელობა)</option>
+          </select>
+          <span class="field-hint" id="modelHint">თუ Flash გადატვირთულია, 3.5 Flash-Lite მუშაობს მომენტალურად.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="targetLangSelect">🌐 ნაგულისხმევი სამიზნე ენა</label>
+          <select id="targetLangSelect">
+            <option value="Georgian (ქართული)">🇬🇪 ქართული (Georgian)</option>
+            <option value="English">🇺🇸 ინგლისური (English)</option>
+            <option value="Russian (Русский)">🇷🇺 რუსული (Russian)</option>
+            <option value="German (Deutsch)">🇩🇪 გერმანული (German)</option>
+            <option value="French (Français)">🇫🇷 ფრანგული (French)</option>
+            <option value="Spanish (Español)">🇪🇸 ესპანური (Spanish)</option>
+            <option value="Turkish (Türkçe)">🇹🇷 თურქული (Turkish)</option>
+          </select>
+          <span class="field-hint">შეგიძლიათ შეცვალოთ თარგმნისას ბუშტიდანაც.</span>
+        </div>
+      </section>
+
+      <hr class="divider">
+
+      <!-- Section: Tone & UX -->
+      <section class="section grid-2">
+        <div class="form-group">
+          <label for="toneSelect">🎨 თარგმნის სტილი და ტონი</label>
+          <select id="toneSelect">
+            <option value="natural">ბუნებრივი & ცოცხალი (Natural/Idiomatic - რეკომენდებული)</option>
+            <option value="formal">ოფიციალური & აკადემიური (Formal)</option>
+            <option value="technical">ტექნიკური & საინჟინრო (IT / Engineering)</option>
+            <option value="casual">მეგობრული & სასაუბრო (Casual)</option>
+          </select>
+        </div>
+
+        <div class="form-group toggle-group">
+          <label class="switch-label" for="showFloatingIcon">
+            <span>✨ მცურავი ღილაკი ტექსტის მონიშვნისას</span>
+            <input type="checkbox" id="showFloatingIcon">
+            <span class="slider"></span>
+          </label>
+          <span class="field-hint">თუ გამორთავთ, თარგმნა შესაძლებელი იქნება მარჯვენა კლიკით (Context Menu).</span>
+        </div>
+
+        <div class="form-group toggle-group" style="grid-column: 1 / -1; margin-top: 10px;">
+          <label class="switch-label" for="enableFailover">
+            <span>🛡️ ჭკვიანი Failover (ავტომატური გადართვა სხვა მოდელზე, თუ არჩეული გადატვირთულია)</span>
+            <input type="checkbox" id="enableFailover" checked>
+            <span class="slider"></span>
+          </label>
+          <span class="field-hint">იცავს "High Demand" შეცდომებისგან — გადატვირთვისას ავტომატურად იყენებს თავისუფალ Gemini მოდელს შეფერხების გარეშე.</span>
+        </div>
+
+        <div style="grid-column: 1 / -1; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: #166534; margin-top: 6px;">
+          ⚡ <strong>Tier-1 ფუნქციები აქტიურია:</strong><br>
+          • <strong>Alt + T</strong> (Mac: <code>Cmd + Shift + T</code>) — მონიშნული ტექსტის მყისიერი თარგმნა კლავიატურით.<br>
+          • <strong>Real-Time Streaming</strong> — სიტყვა-სიტყვა თარგმნა ლოდინის გარეშე.<br>
+          • <strong>Smart Cache (0ms)</strong> — განმეორებითი თარგმანი იხსნება მომენტალურად API-ის ხარჯვის გარეშე.<br>
+          • <strong>Privacy Guard</strong> — პაროლებისა და მგრძნობიარე ველების ავტომატური დაცვა.
+        </div>
+      </section>
+
+      <hr class="divider">
+
+      <!-- Section: Advanced Custom System Prompt -->
+      <section class="section">
+        <details>
+          <summary class="details-summary">🛠️ დამატებითი: ქართული ენის System Prompt (პროფესიონალური პრომპტი)</summary>
+          <div class="prompt-editor-area">
+            <p class="description">
+              ეს პრომპტი განსაზღვრავს Gemini-ის ქცევას, ქართული ენის სტილისტიკას და წესებს. შეგიძლიათ შეცვალოთ ან აღადგინოთ საწყისი ვერსია.
+            </p>
+            <textarea id="customPrompt" rows="8"></textarea>
+            <div class="prompt-actions">
+              <button type="button" class="btn-secondary" id="resetPromptBtn">საწყისზე დაბრუნება (Reset)</button>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <!-- Save Actions -->
+      <div class="footer-actions">
+        <button type="button" class="btn-save" id="saveBtn">💾 შენახვა</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

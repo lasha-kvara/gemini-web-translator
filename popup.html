@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Translator</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="popup-brand">
+        <img src="icons/icon48.png" alt="Gemini" class="popup-icon">
+        <span class="popup-title">Gemini Translator</span>
+      </div>
+      <button class="settings-icon-btn" id="openOptionsBtn" title="პარამეტრები">⚙️</button>
+    </header>
+
+    <!-- Status Bar -->
+    <div class="status-bar" id="statusBar">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">მოწმდება...</span>
+      <span class="badge" id="modelBadge">3.8 Flash</span>
+    </div>
+
+    <!-- Full Page Translation Action Button -->
+    <div class="page-action-wrapper">
+      <button id="translatePageBtn" class="btn-page-action" title="თარგმნის მიმდინარე ღია ვებ-გვერდს სრულად">
+        <span class="action-icon">🌐</span>
+        <div class="action-meta">
+          <strong>მთლიანი გვერდის თარგმნა</strong>
+          <small>ამ გვერდის სრული ქართული თარგმანი</small>
+        </div>
+        <span class="action-arrow">➔</span>
+      </button>
+    </div>
+
+    <!-- Quick Translate Area -->
+    <div class="translate-box">
+      <textarea id="inputText" placeholder="ჩაწერეთ ან ჩასვით ტექსტი სათარგმნად..."></textarea>
+      
+      <div class="translate-actions">
+        <select id="quickLangSelect">
+          <option value="Georgian (ქართული)">🇬🇪 ქართული</option>
+          <option value="English">🇺🇸 English</option>
+          <option value="Russian (Русский)">🇷🇺 Русский</option>
+          <option value="German (Deutsch)">🇩🇪 Deutsch</option>
+          <option value="French (Français)">🇫🇷 Français</option>
+        </select>
+        <button id="quickTranslateBtn" class="btn-translate">თარგმნა ✨</button>
+      </div>
+
+      <!-- Result Area -->
+      <div class="result-area" id="resultArea" style="display: none;">
+        <div class="result-header">
+          <span>ნათარგმნი:</span>
+          <button id="quickCopyBtn" class="btn-copy">📋 კოპირება</button>
+        </div>
+        <div class="result-content" id="resultContent"></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <span class="tip">💡 მონიშნეთ ნებისმიერი ტექსტი გვერდზე სწრაფი თარგმნისთვის</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

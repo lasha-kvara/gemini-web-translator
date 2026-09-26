@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8">
+  <title>Engineering Blog - მთლიანი გვერდის თარგმნა (Full Page Translation)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      line-height: 1.7;
+      padding: 60px 20px 40px 20px;
+    }
+    
+    /* Top Floating Full Page Banner */
+    .gemini-page-banner {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.16), 0 3px 10px rgba(0, 0, 0, 0.08);
+      border-radius: 32px;
+      padding: 9px 20px;
+      z-index: 99999;
+      font-size: 13.5px;
+      color: #1e293b;
+    }
+    .gemini-page-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .gemini-page-banner-left svg {
+      width: 20px;
+      height: 20px;
+      fill: #1a73e8;
+    }
+    .gemini-page-title {
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .gemini-page-status {
+      color: #16a34a;
+      font-weight: 600;
+    }
+    .gemini-banner-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 16px;
+      cursor: pointer;
+    }
+    .gemini-banner-close {
+      background: transparent;
+      border: none;
+      font-size: 20px;
+      color: #94a3b8;
+      cursor: pointer;
+    }
+
+    .nav {
+      max-width: 900px;
+      margin: 0 auto 30px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .logo { font-weight: 800; font-size: 20px; color: #0f172a; }
+    .tagline { color: #64748b; font-size: 13px; }
+    .article-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 50px 60px;
+      border-radius: 16px;
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.04);
+      border: 1px solid #e2e8f0;
+    }
+    .meta { font-size: 13px; color: #64748b; margin-bottom: 14px; }
+    h1 { font-size: 32px; font-weight: 800; line-height: 1.3; color: #0f172a; margin-bottom: 20px; }
+    p { font-size: 16px; margin-bottom: 20px; color: #334155; }
+    .feature-box {
+      background: #f8fafc;
+      border-left: 4px solid #1a73e8;
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin: 25px 0;
+      font-size: 15.5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Banner -->
+  <div class="gemini-page-banner">
+    <div class="gemini-page-banner-left">
+      <svg viewBox="0 0 24 24"><path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"/></svg>
+      <span class="gemini-page-title">Gemini Translate</span>
+      <span class="gemini-page-status">✓ მთლიანი გვერდი ნათარგმნია ქართულად</span>
+    </div>
+    <button class="gemini-banner-btn">↺ ორიგინალის ჩვენება</button>
+    <button class="gemini-banner-close">&times;</button>
+  </div>
+
+  <div class="nav">
+    <div class="logo">⚡ TechEngineering Daily</div>
+    <div class="tagline">ღრუბლოვანი არქიტექტურა და მანქანური სწავლება • სექტემბერი 2026</div>
+  </div>
+
+  <div class="article-container">
+    <div class="meta">არქიტექტურული დიზაინი • 6 წუთი საკითხავად • ალექს ჩენი</div>
+    <h1>მდგრადი ავტონომიური მრავალდონიანი აგენტური არქიტექტურის შექმნა</h1>
+
+    <p>
+      თანამედროვე კორპორატიული ხელოვნური ინტელექტის სისტემები განიცდიან სწრაფ გადასვლას დეცენტრალიზებულ მრავალაგენტიან ტოპოლოგიებზე. ერთი მონოლითური ენობრივი მოდელის იმედად ყოფნის ნაცვლად, საინჟინრო გუნდები დომენის ამოცანებს ანაწილებენ სპეციალიზებულ ავტონომიურ მიკრო-აგენტებს შორის.
+    </p>
+
+    <div class="feature-box">
+      <strong>ძირითადი დასკვნა:</strong> კომპლექსური მსჯელობის ჯაჭვების მაღალი გამტარუნარიანობის მქონე სტრიმინგ-მილსადენებისგან განცალკევებით, განაწილებულ სისტემებს შეუძლიათ მინიმუმამდე დაიყვანონ პირველი ტოკენის დაბრუნების დრო, ამასთანავე სრულად შეინარჩუნონ გრამატიკული სიზუსტე და კონტექსტური ნიუანსები.
+    </div>
+
+    <p>
+      საწარმოო ტესტებში, პასუხისმგებლობების ამგვარი გამიჯვნა 65%-ზე მეტით ამცირებს კუდის ლატენტობას და უზრუნველყოფს უწყვეტ მუშაობას ღრუბლოვანი პროვაიდერის მოულოდნელი დატვირთვის დროსაც კი. თითოეული სამუშაო აგენტი ასინქრონული RPC არხებით ურთიერთქმედებს, რაც უზრუნველყოფს მაქსიმალურ მოქნილობასა და დაცულობას.
+    </p>
+  </div>
+</body>
+</html>

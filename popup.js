@@ -13,7 +13,33 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultContent = document.getElementById("resultContent");
   const quickCopyBtn = document.getElementById("quickCopyBtn");
 
-  let currentResult = "";
+  const popupThemeBtn = document.getElementById("popupThemeBtn");
+
+  function applyTheme(theme) {
+    const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+    if (popupThemeBtn) {
+      popupThemeBtn.textContent = isDark ? "☀️" : "🌙";
+      popupThemeBtn.title = isDark ? "ღია თემაზე გადართვა" : "მუქ თემაზე გადართვა";
+    }
+  }
+
+  if (popupThemeBtn) {
+    popupThemeBtn.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme");
+      const nextTheme = current === "dark" ? "light" : "dark";
+      applyTheme(nextTheme);
+      chrome.storage.sync.set({ theme: nextTheme });
+    });
+  }
+
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    chrome.storage.sync.get({ theme: "system" }, (items) => {
+      if (items.theme === "system") {
+        applyTheme("system");
+      }
+    });
+  });
 
   // Open Options Page
   openOptionsBtn.addEventListener("click", () => {
@@ -25,9 +51,11 @@ document.addEventListener("DOMContentLoaded", () => {
     {
       apiKey: "",
       model: "gemini-3.8-flash",
-      targetLanguage: "Georgian (ქართული)"
+      targetLanguage: "Georgian (ქართული)",
+      theme: "system"
     },
     (items) => {
+      applyTheme(items.theme || "system");
       const activeModel = items.model === "gemini-2.0-flash" ? "gemini-3.8-flash" : items.model;
       modelBadge.textContent = activeModel.replace("gemini-", "");
       quickLangSelect.value = items.targetLanguage;

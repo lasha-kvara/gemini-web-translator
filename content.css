@@ -609,3 +609,99 @@
   background: rgba(255, 255, 255, 0.3);
   border-radius: 3px;
 }
+
+/* ----------------------------------------------------
+   In-Page Modal & Banner Dark Mode Styles
+---------------------------------------------------- */
+.gemini-bubble.dark-theme {
+  background: #131c2e;
+  border-color: #24324d;
+  color: #f1f5f9;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.gemini-bubble.dark-theme .gemini-header {
+  background: linear-gradient(135deg, #0d1524, #131c2e);
+  border-bottom-color: #24324d;
+}
+
+.gemini-bubble.dark-theme .gemini-content {
+  background: #0d1524;
+  color: #f1f5f9;
+  scrollbar-color: #24324d #0d1524;
+}
+
+.gemini-bubble.dark-theme .gemini-footer {
+  background: #131c2e;
+  border-top-color: #24324d;
+}
+
+.gemini-bubble.dark-theme .gemini-lang-select {
+  background: #0d1524;
+  color: #f1f5f9;
+  border-color: #24324d;
+}
+
+.gemini-bubble.dark-theme .gemini-btn-icon {
+  color: #94a3b8;
+}
+
+.gemini-bubble.dark-theme .gemini-btn-icon:hover {
+  background: #24324d;
+  color: #ffffff;
+}
+
+.gemini-bubble.dark-theme .gemini-action-btn {
+  background: #1a2436;
+  border-color: #24324d;
+  color: #cbd5e1;
+}
+
+.gemini-bubble.dark-theme .gemini-action-btn:hover {
+  background: #24324d;
+  color: #ffffff;
+}
+
+.gemini-bubble.dark-theme .gemini-resizer {
+  background: linear-gradient(135deg, transparent 50%, #64748b 50%);
+}
+
+/* Page Banner Dark Theme */
+.gemini-page-banner.dark-theme {
+  background: rgba(13, 21, 36, 0.95);
+  border-color: #24324d;
+  color: #f1f5f9;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+}
+
+.gemini-page-banner.dark-theme .gemini-page-title {
+  color: #f1f5f9;
+}
+
+.gemini-page-banner.dark-theme .gemini-page-status {
+  color: #94a3b8;
+}
+
+.gemini-page-banner.dark-theme .gemini-page-progress-bar {
+  background: #1e293b;
+}
+
+.gemini-page-banner.dark-theme .gemini-banner-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+.gemini-page-banner.dark-theme .gemini-banner-btn:hover {
+  background: #2b3952;
+}
+
+.gemini-page-banner.dark-theme .gemini-banner-close {
+  color: #94a3b8;
+}
+
+.gemini-page-banner.dark-theme .gemini-banner-close:hover {
+  background: #1e293b;
+  color: #ffffff;
+}
+

@@ -51,7 +51,34 @@
   // Header Right
   const readerLangSelect = document.getElementById("readerLangSelect");
   const readerModelBadge = document.getElementById("readerModelBadge");
+  const readerThemeBtn = document.getElementById("readerThemeBtn");
   const readerOptionsBtn = document.getElementById("readerOptionsBtn");
+
+  function applyTheme(theme) {
+    const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+    if (readerThemeBtn) {
+      readerThemeBtn.textContent = isDark ? "☀️" : "🌙";
+      readerThemeBtn.title = isDark ? "ღია თემაზე გადართვა" : "მუქ თემაზე გადართვა";
+    }
+  }
+
+  if (readerThemeBtn) {
+    readerThemeBtn.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme");
+      const nextTheme = current === "dark" ? "light" : "dark";
+      applyTheme(nextTheme);
+      chrome.storage.sync.set({ theme: nextTheme });
+    });
+  }
+
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    chrome.storage.sync.get({ theme: "system" }, (items) => {
+      if (items.theme === "system") {
+        applyTheme("system");
+      }
+    });
+  });
 
   // Left Pane (PDF)
   const pdfPane = document.getElementById("pdfPane");
@@ -89,12 +116,14 @@
       {
         targetLanguage: "Georgian (ქართული)",
         model: "gemini-3.8-flash",
+        theme: "system",
         readerAutoTranslate: false
       },
       (items) => {
         state.targetLang = items.targetLanguage || "Georgian (ქართული)";
         state.model = items.model || "gemini-3.8-flash";
         state.autoTranslate = Boolean(items.readerAutoTranslate);
+        applyTheme(items.theme || "system");
 
         if (readerLangSelect) readerLangSelect.value = state.targetLang;
         if (readerModelBadge) readerModelBadge.textContent = state.model.replace("gemini-", "");
@@ -105,6 +134,9 @@
     // Listen for options changes
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === "sync") {
+        if (changes.theme) {
+          applyTheme(changes.theme.newValue);
+        }
         if (changes.targetLanguage) {
           state.targetLang = changes.targetLanguage.newValue;
           if (readerLangSelect) readerLangSelect.value = state.targetLang;

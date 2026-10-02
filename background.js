@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS = {
   model: "gemini-3.8-flash",
   targetLanguage: "Georgian (ქართული)",
   tone: "natural",
+  theme: "system",
   showFloatingIcon: true,
   autoDetectLanguage: true,
   enableHoverOriginal: true,

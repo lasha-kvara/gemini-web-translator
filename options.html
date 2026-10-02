@@ -17,7 +17,10 @@
           <p class="subtitle">პარამეტრები და კონფიგურაცია</p>
         </div>
       </div>
-      <div class="status-badge" id="saveStatus"></div>
+      <div class="header-actions">
+        <button type="button" class="btn-theme-toggle" id="quickThemeToggle" title="თემის გადართვა (Dark/Light)">🌙</button>
+        <div class="status-badge" id="saveStatus"></div>
+      </div>
     </header>
 
     <!-- Main Settings Form -->
@@ -85,6 +88,16 @@
             <option value="technical">ტექნიკური & საინჟინრო (IT / Engineering)</option>
             <option value="casual">მეგობრული & სასაუბრო (Casual)</option>
           </select>
+        </div>
+
+        <div class="form-group">
+          <label for="themeSelect">🌓 ვიზუალური თემა (Dark Mode)</label>
+          <select id="themeSelect">
+            <option value="system">🖥️ სისტემური (ავტომატური)</option>
+            <option value="dark">🌙 მუქი რეჟიმი (Dark Mode)</option>
+            <option value="light">☀️ ღია რეჟიმი (Light Mode)</option>
+          </select>
+          <span class="field-hint">მუქი/ღია თემა მთელ გაფართოებაში (Popup, Options, PDF Reader).</span>
         </div>
 
         <div class="form-group toggle-group">

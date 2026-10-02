@@ -22,6 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const modelSelect = document.getElementById("modelSelect");
   const targetLangSelect = document.getElementById("targetLangSelect");
   const toneSelect = document.getElementById("toneSelect");
+  const themeSelect = document.getElementById("themeSelect");
+  const quickThemeToggle = document.getElementById("quickThemeToggle");
   const showFloatingIcon = document.getElementById("showFloatingIcon");
   const enableHoverOriginal = document.getElementById("enableHoverOriginal");
   const enableFailover = document.getElementById("enableFailover");
@@ -31,6 +33,41 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveStatus = document.getElementById("saveStatus");
   const cacheCountText = document.getElementById("cacheCountText");
   const clearCacheBtn = document.getElementById("clearCacheBtn");
+
+  function applyTheme(theme) {
+    const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+    if (quickThemeToggle) {
+      quickThemeToggle.textContent = isDark ? "☀️" : "🌙";
+      quickThemeToggle.title = isDark ? "ღია თემაზე გადართვა" : "მუქ თემაზე გადართვა";
+    }
+  }
+
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    chrome.storage.sync.get({ theme: "system" }, (items) => {
+      if (items.theme === "system") {
+        applyTheme("system");
+      }
+    });
+  });
+
+  if (themeSelect) {
+    themeSelect.addEventListener("change", () => {
+      const newTheme = themeSelect.value;
+      applyTheme(newTheme);
+      chrome.storage.sync.set({ theme: newTheme });
+    });
+  }
+
+  if (quickThemeToggle) {
+    quickThemeToggle.addEventListener("click", () => {
+      const currentAttr = document.documentElement.getAttribute("data-theme");
+      const nextTheme = currentAttr === "dark" ? "light" : "dark";
+      if (themeSelect) themeSelect.value = nextTheme;
+      applyTheme(nextTheme);
+      chrome.storage.sync.set({ theme: nextTheme });
+    });
+  }
 
   // Custom Glossary Elements
   const glossaryCategoryTabs = document.getElementById("glossaryCategoryTabs");
@@ -322,6 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
       model: "gemini-3.8-flash",
       targetLanguage: "Georgian (ქართული)",
       tone: "natural",
+      theme: "system",
       showFloatingIcon: true,
       enableHoverOriginal: true,
       enableFailover: true,
@@ -340,6 +378,8 @@ document.addEventListener("DOMContentLoaded", () => {
       modelSelect.value = activeModel;
       targetLangSelect.value = items.targetLanguage;
       toneSelect.value = items.tone;
+      if (themeSelect) themeSelect.value = items.theme || "system";
+      applyTheme(items.theme || "system");
       showFloatingIcon.checked = items.showFloatingIcon;
       if (enableHoverOriginal) {
         enableHoverOriginal.checked = items.enableHoverOriginal !== false;
@@ -525,6 +565,7 @@ document.addEventListener("DOMContentLoaded", () => {
       model: modelSelect.value,
       targetLanguage: targetLangSelect.value,
       tone: toneSelect.value,
+      theme: themeSelect ? themeSelect.value : "system",
       showFloatingIcon: showFloatingIcon.checked,
       enableHoverOriginal: enableHoverOriginal ? enableHoverOriginal.checked : true,
       enableFailover: enableFailover.checked,

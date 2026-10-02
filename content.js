@@ -238,6 +238,20 @@
     }
   }
 
+  function applyThemeToElement(element) {
+    if (!element || !isExtensionContextValid()) return;
+    try {
+      chrome.storage.sync.get({ theme: "system" }, (items) => {
+        const isDark = items.theme === "dark" || (items.theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (isDark) {
+          element.classList.add("dark-theme");
+        } else {
+          element.classList.remove("dark-theme");
+        }
+      });
+    } catch (e) {}
+  }
+
   /**
    * Show Translation Bubble with Real-Time Streaming
    */
@@ -248,6 +262,7 @@
 
     bubbleElement = document.createElement("div");
     bubbleElement.className = "gemini-bubble";
+    applyThemeToElement(bubbleElement);
     bubbleElement.dataset.sourceText = textToTranslate;
 
     const scrollX = window.scrollX || document.documentElement.scrollLeft;
@@ -892,6 +907,7 @@
 
     pageBannerElement = document.createElement("div");
     pageBannerElement.className = "gemini-page-banner";
+    applyThemeToElement(pageBannerElement);
     pageBannerElement.innerHTML = `
       <div class="gemini-page-banner-left">
         ${GEMINI_ICON_SVG}

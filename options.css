@@ -1,4 +1,3 @@
-/* Modern Google/Gemini aesthetic for Options Page */
 :root {
   --primary: #1a73e8;
   --primary-hover: #1557b0;
@@ -11,6 +10,19 @@
   --success: #16a34a;
   --danger: #dc2626;
   --radius: 12px;
+}
+
+[data-theme="dark"] {
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --purple: #c084fc;
+  --bg: #090d16;
+  --card-bg: #131c2e;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: #24324d;
+  --success: #22c55e;
+  --danger: #ef4444;
 }
 
 * {
@@ -530,3 +542,129 @@ textarea#customPrompt {
   color: var(--text-muted);
   background: #fafafa;
 }
+
+/* Header Actions & Theme Toggle Button */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-theme-toggle {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-theme-toggle:hover {
+  background: var(--border);
+  transform: scale(1.05);
+}
+
+/* ----------------------------------------------------
+   Dark Mode Element Overrides
+---------------------------------------------------- */
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #0d1524;
+  color: #f1f5f9;
+  border-color: #24324d;
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: #1a2436;
+  border-color: #24324d;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background: #24324d;
+}
+
+[data-theme="dark"] .divider {
+  border-color: #24324d;
+}
+
+[data-theme="dark"] .field-hint {
+  color: #818cf8;
+}
+
+[data-theme="dark"] .slider {
+  background-color: #334155;
+}
+
+[data-theme="dark"] .glossary-table th {
+  background: #0d1524;
+  color: #94a3b8;
+  border-color: #24324d;
+}
+
+[data-theme="dark"] .glossary-table td {
+  border-color: #24324d;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .glossary-table tr:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="dark"] .glossary-tab-btn {
+  background: #0d1524;
+  border-color: #24324d;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .glossary-tab-btn:hover {
+  background: #1a2436;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .glossary-tab-btn.active {
+  background: #1e293b;
+  color: #60a5fa;
+  border-color: #3b82f6;
+}
+
+[data-theme="dark"] .glossary-count-badge {
+  background: #24324d;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .glossary-tab-btn.active .glossary-count-badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .glossary-input {
+  background: #0d1524;
+  border-color: #24324d;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .glossary-empty {
+  background: #0d1524;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .btn-delete-row:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+

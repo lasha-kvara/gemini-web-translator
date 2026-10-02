@@ -55,7 +55,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["icons/*", "content.css"],
+      "resources": ["icons/*", "content.css", "lib/*", "reader.html", "reader.css", "reader.js"],
       "matches": ["<all_urls>"]
     }
   ]

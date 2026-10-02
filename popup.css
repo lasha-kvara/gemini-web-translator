@@ -272,3 +272,18 @@ select#quickLangSelect {
 .btn-page-action:hover .action-arrow {
   transform: translateX(3px);
 }
+
+.btn-pdf-action {
+  background: linear-gradient(135deg, #f0fdf4, #eff6ff);
+  border-color: #dcfce7;
+}
+
+.btn-pdf-action:hover {
+  background: linear-gradient(135deg, #dcfce7, #dbeafe);
+  border-color: #bbf7d0;
+  box-shadow: 0 3px 10px rgba(22, 163, 74, 0.12);
+}
+
+.btn-pdf-action .action-arrow {
+  color: #16a34a;
+}

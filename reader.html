@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini AI • ორენოვანი PDF მკითხველი (Bilingual Reader)</title>
+  <link rel="icon" type="image/png" href="icons/icon48.png">
+  <link rel="stylesheet" href="lib/pdf_viewer.min.css">
+  <link rel="stylesheet" href="reader.css">
+</head>
+<body>
+  <!-- Top Application Bar -->
+  <header class="reader-header">
+    <div class="header-left">
+      <div class="brand">
+        <img src="icons/icon48.png" alt="Gemini" class="brand-icon">
+        <div class="brand-text">
+          <span class="brand-title">Gemini AI Reader</span>
+          <span class="brand-tag">Bilingual PDF Viewer</span>
+        </div>
+      </div>
+
+      <div class="file-control">
+        <button id="openFileBtn" class="btn-tool btn-primary">
+          <span class="icon">📂</span> PDF-ის გახსნა
+        </button>
+        <input type="file" id="pdfFileInput" accept="application/pdf" style="display: none;">
+        <span id="docTitle" class="doc-title" title="დოკუმენტი არ არის არჩეული">ფაილი არ არის არჩეული</span>
+      </div>
+    </div>
+
+    <!-- Navigation & Zoom Controls (Visible when PDF is loaded) -->
+    <div class="header-center" id="navControls" style="visibility: hidden;">
+      <div class="pagination-bar">
+        <button id="prevPageBtn" class="btn-icon" title="წინა გვერდი (PgUp / Left Arrow)">◀</button>
+        <div class="page-counter">
+          <input type="number" id="pageNumInput" min="1" value="1">
+          <span class="slash">/</span>
+          <span id="pageCount">0</span>
+        </div>
+        <button id="nextPageBtn" class="btn-icon" title="შემდეგი გვერდი (PgDn / Right Arrow)">▶</button>
+      </div>
+
+      <div class="zoom-bar">
+        <button id="zoomOutBtn" class="btn-icon" title="დაპატარავება (Ctrl -)">−</button>
+        <span id="zoomLevel" class="zoom-display">100%</span>
+        <button id="zoomInBtn" class="btn-icon" title="გადიდება (Ctrl +)">+</button>
+        <button id="fitWidthBtn" class="btn-tool-sm" title="მორგება სიგანეზე">↕ მორგება</button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="lang-selector-wrap">
+        <span class="lang-label">სამიზნე ენა:</span>
+        <select id="readerLangSelect" class="select-lang">
+          <option value="Georgian (ქართული)">🇬🇪 ქართული</option>
+          <option value="English">🇺🇸 English</option>
+          <option value="Russian (Русский)">🇷🇺 Русский</option>
+          <option value="German (Deutsch)">🇩🇪 Deutsch</option>
+          <option value="French (Français)">🇫🇷 Français</option>
+        </select>
+      </div>
+
+      <div class="status-wrap">
+        <span class="model-badge" id="readerModelBadge">3.8 Flash</span>
+      </div>
+
+      <button id="readerOptionsBtn" class="btn-icon" title="პარამეტრები (Options)">⚙️</button>
+    </div>
+  </header>
+
+  <!-- Main Split Layout Container -->
+  <main class="reader-main">
+    <!-- Initial Drag & Drop Zone (When no PDF is loaded) -->
+    <div id="dropZone" class="dropzone-area">
+      <div class="dropzone-card">
+        <div class="dropzone-icon">📑</div>
+        <h2>გახსენით PDF წიგნი ან დოკუმენტი</h2>
+        <p class="dropzone-sub">
+          გადმოათრიეთ ნებისმიერი PDF ფაილი აქ, ან დააჭირეთ ფაილის ასარჩევად.
+        </p>
+        <button id="browseBtn" class="btn-browse">
+          <span class="icon">📁</span> კომპიუტერიდან არჩევა
+        </button>
+        <div class="features-list">
+          <div class="feature-item">
+            <span class="f-icon">⚡</span>
+            <span><strong>სრული გვერდის თარგმანი:</strong> აკადემიური და წიგნის დონის ქართული თარგმანი Google Gemini AI-ით</span>
+          </div>
+          <div class="feature-item">
+            <span class="f-icon">🖱️</span>
+            <span><strong>მონიშვნით თარგმნა:</strong> მონიშნეთ ნებისმიერი რთული აბზაცი ან ფრაზა PDF-ზე და მყისიერად ნახეთ თარგმანი</span>
+          </div>
+          <div class="feature-item">
+            <span class="f-icon">🔒</span>
+            <span><strong>100% კონფიდენციალური:</strong> ფაილი იკითხება ლოკალურად თქვენს ბრაუზერში, სერვერზე ფაილი არ იტვირთება</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Dual-Pane Viewer (Hidden initially) -->
+    <div id="splitViewer" class="split-viewer" style="display: none;">
+      <!-- Left Pane: PDF Canvas & Text Selection Layer -->
+      <section class="pane pdf-pane" id="pdfPane">
+        <div class="pane-header pdf-header">
+          <span class="pane-title">📄 ორიგინალი დოკუმენტი</span>
+          <div class="pdf-header-actions">
+            <span class="pdf-hint">💡 მონიშნეთ ტექსტი სწრაფი თარგმნისთვის</span>
+          </div>
+        </div>
+        <div class="pdf-scroll-container" id="pdfScrollContainer">
+          <div class="pdf-canvas-wrapper" id="pdfCanvasWrapper">
+            <canvas id="pdfCanvas"></canvas>
+            <div id="pdfTextLayer" class="textLayer"></div>
+          </div>
+        </div>
+
+        <!-- Floating Selection Bubble for PDF text layer -->
+        <div id="pdfSelectionBubble" class="pdf-selection-bubble" style="display: none;">
+          <div class="bubble-header">
+            <span class="bubble-title">✨ Gemini თარგმანი</span>
+            <div class="bubble-actions">
+              <button id="bubbleCopyBtn" class="btn-mini" title="კოპირება">📋</button>
+              <button id="bubbleCloseBtn" class="btn-mini" title="დახურვა">✕</button>
+            </div>
+          </div>
+          <div class="bubble-content" id="bubbleContent">ითარგმნება...</div>
+          <div class="bubble-footer" id="bubbleFooter">
+            <span class="bubble-model-info" id="bubbleModelInfo">3.8 Flash</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Draggable Pane Resizer Divider -->
+      <div class="pane-resizer" id="paneResizer" title="გადაათრიეთ ზომის შესაცვლელად">
+        <div class="resizer-handle"></div>
+      </div>
+
+      <!-- Right Pane: Translation View -->
+      <section class="pane trans-pane" id="transPane">
+        <div class="pane-header trans-header">
+          <div class="trans-header-left">
+            <span class="pane-title">🇬🇪 ქართული თარგმანი</span>
+            <span id="transStatusIndicator" class="status-indicator"></span>
+          </div>
+          <div class="trans-toolbar">
+            <label class="toggle-auto" title="გვერდის გადაფურცვლისას ავტომატურად ითარგმნოს">
+              <input type="checkbox" id="autoTranslateToggle">
+              <span class="toggle-slider"></span>
+              <span class="toggle-label">ავტო-თარგმნა</span>
+            </label>
+            <button id="copyAllTransBtn" class="btn-tool-sm" title="მიმდინარე გვერდის სრული თარგმანის კოპირება">
+              📋 კოპირება
+            </button>
+            <button id="retranslateBtn" class="btn-tool-sm" title="თავიდან თარგმნა (ქეშის გარეშე)">
+              🔄 ხელახლა
+            </button>
+            <button id="translatePageBtn" class="btn-tool-sm btn-primary">
+              ✨ გვერდის თარგმნა
+            </button>
+          </div>
+        </div>
+
+        <!-- Translation Progress Bar -->
+        <div id="transProgressBar" class="trans-progress-bar" style="display: none;">
+          <div class="progress-fill" id="transProgressFill"></div>
+        </div>
+
+        <!-- Translation Output Container -->
+        <div class="trans-scroll-container" id="transScrollContainer">
+          <div id="transEmptyState" class="trans-empty-state">
+            <div class="empty-icon">📖</div>
+            <h3>გვერდი ჯერ არ არის ნათარგმნი</h3>
+            <p>
+              დააჭირეთ <strong>«✨ გვერდის თარგმნა»</strong> ღილაკს, რომ მთლიანი მიმდინარე გვერდი ითარგმნოს ქართულად, ან ჩართეთ <strong>«ავტო-თარგმნა»</strong>.
+            </p>
+            <button id="emptyTranslateBtn" class="btn-translate-hero">
+              ✨ ამ გვერდის თარგმნა
+            </button>
+          </div>
+
+          <div id="transParagraphsList" class="trans-paragraphs-list" style="display: none;">
+            <!-- Paragraph translation cards dynamically injected here -->
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Mozilla PDF.js Local Scripts (MV3 Compliant) -->
+  <script src="lib/pdf.min.js"></script>
+  <script src="reader.js"></script>
+</body>
+</html>

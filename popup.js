@@ -165,4 +165,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   }
+
+  // Bilingual PDF Reader Action
+  const openReaderBtn = document.getElementById("openReaderBtn");
+  if (openReaderBtn) {
+    openReaderBtn.addEventListener("click", () => {
+      chrome.tabs.create({ url: chrome.runtime.getURL("reader.html") });
+      window.close();
+    });
+  }
 });

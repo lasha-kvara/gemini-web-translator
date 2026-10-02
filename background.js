@@ -185,10 +185,21 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "Translate Full Page with Gemini (მთლიანი გვერდის თარგმნა)",
     contexts: ["page"]
   });
+
+  chrome.contextMenus.create({
+    id: "gemini-open-reader",
+    title: "Open Bilingual PDF Reader (PDF მკითხველი)",
+    contexts: ["all"]
+  });
 });
 
 // Handle Context Menu clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "gemini-open-reader") {
+    chrome.tabs.create({ url: chrome.runtime.getURL("reader.html") });
+    return;
+  }
+
   if (info.menuItemId === "gemini-translate-selection" && tab && tab.id) {
     chrome.tabs.sendMessage(tab.id, {
       action: "triggerContextMenuTranslation",

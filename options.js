@@ -32,6 +32,143 @@ document.addEventListener("DOMContentLoaded", () => {
   const cacheCountText = document.getElementById("cacheCountText");
   const clearCacheBtn = document.getElementById("clearCacheBtn");
 
+  // Custom Glossary Elements
+  const glossaryTableBody = document.getElementById("glossaryTableBody");
+  const glossaryEmptyMsg = document.getElementById("glossaryEmptyMsg");
+  const addGlossaryRowBtn = document.getElementById("addGlossaryRowBtn");
+  const clearGlossaryBtn = document.getElementById("clearGlossaryBtn");
+  const presetItBtn = document.getElementById("presetItBtn");
+  const presetAcademicBtn = document.getElementById("presetAcademicBtn");
+
+  const IT_PRESETS = [
+    { source: "Pipeline", target: "პაიპლაინი" },
+    { source: "State Machine", target: "მდგომარეობის მანქანა" },
+    { source: "Middleware", target: "Middleware" },
+    { source: "Framework", target: "ფრეიმვორკი" },
+    { source: "Backend", target: "ბექენდი" },
+    { source: "Frontend", target: "ფრონტენდი" },
+    { source: "Refactor", target: "რეფაქტორინგი" },
+    { source: "Deploy", target: "დეპლოი" }
+  ];
+
+  const ACADEMIC_PRESETS = [
+    { source: "Epistemology", target: "ეპისტემოლოგია" },
+    { source: "Phenomenology", target: "ფენომენოლოგია" },
+    { source: "Supersensible", target: "ზეგრძნობადი" },
+    { source: "Dialectic", target: "დიალექტიკა" },
+    { source: "Ontology", target: "ონტოლოგია" },
+    { source: "Hermeneutics", target: "ჰერმენევტიკა" }
+  ];
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function updateGlossaryEmptyState() {
+    if (!glossaryTableBody || !glossaryEmptyMsg) return;
+    const count = glossaryTableBody.querySelectorAll("tr").length;
+    glossaryEmptyMsg.style.display = count === 0 ? "block" : "none";
+  }
+
+  function addGlossaryRow(source = "", target = "") {
+    if (!glossaryTableBody) return null;
+    const tr = document.createElement("tr");
+    tr.className = "glossary-row";
+    tr.innerHTML = `
+      <td>
+        <input type="text" class="glossary-input glossary-src" placeholder="მაგ. Pipeline" value="${escapeHtml(source)}">
+      </td>
+      <td>
+        <input type="text" class="glossary-input glossary-tgt" placeholder="მაგ. პაიპლაინი" value="${escapeHtml(target)}">
+      </td>
+      <td style="text-align: center;">
+        <button type="button" class="btn-delete-row" title="წაშლა">&times;</button>
+      </td>
+    `;
+
+    const delBtn = tr.querySelector(".btn-delete-row");
+    delBtn.addEventListener("click", () => {
+      tr.remove();
+      updateGlossaryEmptyState();
+    });
+
+    glossaryTableBody.appendChild(tr);
+    updateGlossaryEmptyState();
+    return tr;
+  }
+
+  function renderGlossaryTable(entries) {
+    if (!glossaryTableBody) return;
+    glossaryTableBody.innerHTML = "";
+    if (Array.isArray(entries) && entries.length > 0) {
+      entries.forEach((item) => {
+        if (item && (item.source || item.target)) {
+          addGlossaryRow(item.source || "", item.target || "");
+        }
+      });
+    }
+    updateGlossaryEmptyState();
+  }
+
+  function getGlossaryData() {
+    if (!glossaryTableBody) return [];
+    const rows = glossaryTableBody.querySelectorAll("tr");
+    const result = [];
+    rows.forEach((row) => {
+      const src = row.querySelector(".glossary-src")?.value?.trim();
+      const tgt = row.querySelector(".glossary-tgt")?.value?.trim();
+      if (src && tgt) {
+        result.push({ source: src, target: tgt });
+      }
+    });
+    return result;
+  }
+
+  if (addGlossaryRowBtn) {
+    addGlossaryRowBtn.addEventListener("click", () => {
+      const newRow = addGlossaryRow();
+      newRow?.querySelector(".glossary-src")?.focus();
+    });
+  }
+
+  if (clearGlossaryBtn) {
+    clearGlossaryBtn.addEventListener("click", () => {
+      if (!glossaryTableBody || glossaryTableBody.querySelectorAll("tr").length === 0) return;
+      if (confirm("დარწმუნებული ხართ, რომ გსურთ მთლიანი ლექსიკონის გასუფთავება?")) {
+        glossaryTableBody.innerHTML = "";
+        updateGlossaryEmptyState();
+      }
+    });
+  }
+
+  function applyPreset(presetList) {
+    const existing = getGlossaryData();
+    const existingSrcs = new Set(existing.map((e) => e.source.toLowerCase()));
+    presetList.forEach((item) => {
+      if (!existingSrcs.has(item.source.toLowerCase())) {
+        addGlossaryRow(item.source, item.target);
+      }
+    });
+  }
+
+  if (presetItBtn) {
+    presetItBtn.addEventListener("click", () => {
+      applyPreset(IT_PRESETS);
+    });
+  }
+
+  if (presetAcademicBtn) {
+    presetAcademicBtn.addEventListener("click", () => {
+      applyPreset(ACADEMIC_PRESETS);
+    });
+  }
+
   function updateCacheStats() {
     if (!cacheCountText) return;
     chrome.runtime.sendMessage({ action: "getCacheStats" }, (res) => {
@@ -70,6 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showFloatingIcon: true,
       enableHoverOriginal: true,
       enableFailover: true,
+      customGlossary: [],
       customPrompt: DEFAULT_SYSTEM_PROMPT
     },
     (items) => {
@@ -86,6 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
         enableHoverOriginal.checked = items.enableHoverOriginal !== false;
       }
       enableFailover.checked = items.enableFailover !== false;
+      renderGlossaryTable(items.customGlossary || []);
       customPrompt.value = items.customPrompt || DEFAULT_SYSTEM_PROMPT;
 
       if (items.apiKey && items.apiKey.trim().length > 10) {
@@ -222,6 +361,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showFloatingIcon: showFloatingIcon.checked,
       enableHoverOriginal: enableHoverOriginal ? enableHoverOriginal.checked : true,
       enableFailover: enableFailover.checked,
+      customGlossary: getGlossaryData(),
       customPrompt: customPrompt.value
     };
 

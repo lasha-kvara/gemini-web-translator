@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS = {
   autoDetectLanguage: true,
   enableHoverOriginal: true,
   enableFailover: true,
+  customGlossary: [],
   customPrompt: DEFAULT_SYSTEM_PROMPT
 };
 
@@ -39,11 +40,41 @@ const CANDIDATE_FALLBACK_MODELS = [
 const translationCache = new Map();
 const MAX_CACHE_SIZE = 150;
 
-function getCacheKey(text, targetLang, tone, model) {
+function getCacheKey(text, targetLang, tone, model, glossary = null) {
   const m = model || "gemini-3.8-flash";
   const l = targetLang || "Georgian (ქართული)";
   const t = tone || "natural";
-  return `gtc:::${m}:::${l}:::${t}:::${text.trim()}`;
+  let gHash = "";
+  if (Array.isArray(glossary) && glossary.length > 0) {
+    const valid = glossary
+      .filter((e) => e && e.source && e.target)
+      .map((e) => `${e.source.trim().toLowerCase()}:${e.target.trim()}`)
+      .sort()
+      .join("|");
+    if (valid) {
+      gHash = `:::g:${valid}`;
+    }
+  }
+  return `gtc:::${m}:::${l}:::${t}${gHash}:::${text.trim()}`;
+}
+
+/**
+ * Format user-defined glossary rules to inject into Gemini system instructions
+ */
+function formatGlossaryPrompt(glossary) {
+  if (!Array.isArray(glossary) || glossary.length === 0) return "";
+  const validEntries = glossary.filter(
+    (item) => item && item.source && item.source.trim() && item.target && item.target.trim()
+  );
+  if (validEntries.length === 0) return "";
+
+  let prompt = "\n\nUser-Defined Domain Glossary & Terminology Rules (MANDATORY):\n";
+  prompt += "Strictly adhere to the following terminology mappings whenever the source term appears in the text:\n";
+  for (const entry of validEntries) {
+    prompt += `- "${entry.source.trim()}" -> "${entry.target.trim()}"\n`;
+  }
+  prompt += "If the target is a preserved English word, keep it in English. When declining preserved foreign terms with Georgian cases, use hyphens (e.g. Docker-ის, API-ს).\n";
+  return prompt;
 }
 
 async function getFromCache(key) {
@@ -323,7 +354,7 @@ async function handleStreamingTranslation(params, port, abortController) {
   const initialModel = settings.model || "gemini-3.8-flash";
 
   // Check LRU Cache first (0ms instant return!) unless bypassCache is requested
-  const cacheKey = getCacheKey(text, targetLanguage, tone, initialModel);
+  const cacheKey = getCacheKey(text, targetLanguage, tone, initialModel, settings.customGlossary);
   if (!bypassCache) {
     const cachedData = await getFromCache(cacheKey);
     if (cachedData) {
@@ -348,7 +379,8 @@ async function handleStreamingTranslation(params, port, abortController) {
     toneGuidance = "\nTranslate with precision for software engineering and technical documentation.";
   }
 
-  const fullSystemPrompt = `${settings.customPrompt || DEFAULT_SYSTEM_PROMPT}${toneGuidance}\nTarget Language: ${targetLanguage}`;
+  const glossaryPrompt = formatGlossaryPrompt(settings.customGlossary);
+  const fullSystemPrompt = `${settings.customPrompt || DEFAULT_SYSTEM_PROMPT}${toneGuidance}${glossaryPrompt}\nTarget Language: ${targetLanguage}`;
   const prompt = `Translate the entire following source text completely and faithfully into ${targetLanguage}. Translate all paragraphs in full without omitting or summarizing anything:\n\n${text}`;
 
   const enableFailover = settings.enableFailover !== false;
@@ -474,7 +506,7 @@ async function handleStreamingTranslation(params, port, abortController) {
 
       if (accumulatedText.trim().length > 0) {
         // Save to LRU cache with model-aware key
-        const finalKey = getCacheKey(text, targetLanguage, tone, curModel);
+        const finalKey = getCacheKey(text, targetLanguage, tone, curModel, settings.customGlossary);
         saveToCache(finalKey, {
           translation: accumulatedText.trim(),
           model: curModel,
@@ -537,7 +569,7 @@ async function handleTranslation(params) {
   const initialModel = settings.model || "gemini-3.8-flash";
 
   // Check cache unless bypassCache is requested
-  const cacheKey = getCacheKey(text, targetLanguage, tone, initialModel);
+  const cacheKey = getCacheKey(text, targetLanguage, tone, initialModel, settings.customGlossary);
   if (!bypassCache) {
     const cached = await getFromCache(cacheKey);
     if (cached) {
@@ -561,7 +593,8 @@ async function handleTranslation(params) {
     toneGuidance = "\nTranslate with precision for software engineering and technical documentation.";
   }
 
-  const fullSystemPrompt = `${settings.customPrompt || DEFAULT_SYSTEM_PROMPT}${toneGuidance}\nTarget Language: ${targetLanguage}`;
+  const glossaryPrompt = formatGlossaryPrompt(settings.customGlossary);
+  const fullSystemPrompt = `${settings.customPrompt || DEFAULT_SYSTEM_PROMPT}${toneGuidance}${glossaryPrompt}\nTarget Language: ${targetLanguage}`;
   const prompt = `Translate the entire following source text completely and faithfully into ${targetLanguage}. Translate all paragraphs in full without omitting or summarizing anything:\n\n${text}`;
 
   const enableFailover = settings.enableFailover !== false;
@@ -612,7 +645,7 @@ async function handleTranslation(params) {
             .join("");
 
           if (translatedText) {
-            const finalKey = getCacheKey(text, targetLanguage, tone, curModel);
+            const finalKey = getCacheKey(text, targetLanguage, tone, curModel, settings.customGlossary);
             saveToCache(finalKey, {
               translation: translatedText.trim(),
               model: curModel,
@@ -715,7 +748,7 @@ async function handleBatchTranslation(params) {
 
   for (let i = 0; i < texts.length; i++) {
     if (!bypassCache) {
-      const cacheKey = getCacheKey(texts[i], targetLanguage, tone, initialModel);
+      const cacheKey = getCacheKey(texts[i], targetLanguage, tone, initialModel, settings.customGlossary);
       const cached = await getFromCache(cacheKey);
       if (cached && cached.translation) {
         results[i] = cached.translation;
@@ -730,13 +763,15 @@ async function handleBatchTranslation(params) {
     return { success: true, translations: results, fromCache: true };
   }
 
-  const batchPrompt = `You are a premier bilingual translator specializing in localization into ${targetLanguage}.
+  const glossaryPrompt = formatGlossaryPrompt(settings.customGlossary);
+  const batchPrompt = `You are a premier bilingual translator specializing in localization into ${targetLanguage}.${glossaryPrompt}
 Translate the following JSON array of strings into ${targetLanguage}.
 MANDATORY INSTRUCTIONS:
 1. Return ONLY a valid JSON array of strings containing EXACTLY ${missingTexts.length} items in the same sequence.
 2. Translate naturally, idiomatically, and fluently adhering to authentic Georgian linguistic standards.
 3. Preserve all numbers, URLs, dates, proper nouns, brand names, and code elements without modification.
-4. Do NOT output markdown ticks, comments, prefixes, or explanations. Output pure JSON array: ["...", "..."]
+4. Strictly respect any custom glossary mappings defined above.
+5. Do NOT output markdown ticks, comments, prefixes, or explanations. Output pure JSON array: ["...", "..."]
 
 Input JSON array:
 ${JSON.stringify(missingTexts)}`;
@@ -816,14 +851,14 @@ ${JSON.stringify(missingTexts)}`;
               const transVal = String(translatedArray[k]);
               results[origIdx] = transVal;
 
-              const itemCacheKey = getCacheKey(missingTexts[k], targetLanguage, tone, curModel);
+              const itemCacheKey = getCacheKey(missingTexts[k], targetLanguage, tone, curModel, settings.customGlossary);
               saveToCache(itemCacheKey, {
                 translation: transVal,
                 model: curModel,
                 timestamp: Date.now()
               });
               if (curModel !== initialModel) {
-                const itemInitKey = getCacheKey(missingTexts[k], targetLanguage, tone, initialModel);
+                const itemInitKey = getCacheKey(missingTexts[k], targetLanguage, tone, initialModel, settings.customGlossary);
                 saveToCache(itemInitKey, {
                   translation: transVal,
                   model: curModel,

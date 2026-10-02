@@ -524,13 +524,6 @@ async function handleStreamingTranslation(params, port, abortController) {
           model: curModel,
           timestamp: Date.now()
         });
-        if (curModel !== initialModel) {
-          saveToCache(cacheKey, {
-            translation: accumulatedText.trim(),
-            model: curModel,
-            timestamp: Date.now()
-          });
-        }
 
         port.postMessage({
           type: "done",
@@ -663,13 +656,6 @@ async function handleTranslation(params) {
               model: curModel,
               timestamp: Date.now()
             });
-            if (curModel !== initialModel) {
-              saveToCache(cacheKey, {
-                translation: translatedText.trim(),
-                model: curModel,
-                timestamp: Date.now()
-              });
-            }
 
             return {
               success: true,
@@ -869,14 +855,6 @@ ${JSON.stringify(missingTexts)}`;
                 model: curModel,
                 timestamp: Date.now()
               });
-              if (curModel !== initialModel) {
-                const itemInitKey = getCacheKey(missingTexts[k], targetLanguage, tone, initialModel, settings.customGlossary);
-                saveToCache(itemInitKey, {
-                  translation: transVal,
-                  model: curModel,
-                  timestamp: Date.now()
-                });
-              }
             }
 
             return {

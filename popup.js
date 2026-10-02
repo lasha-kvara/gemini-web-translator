@@ -98,8 +98,14 @@ document.addEventListener("DOMContentLoaded", () => {
               modelBadge.style.color = "#15803d";
             } else if (msg.isFallback) {
               modelBadge.textContent = `${msg.model.replace("gemini-", "")} (auto)`;
+              modelBadge.style.background = "#fef3c7";
+              modelBadge.style.color = "#b45309";
+              modelBadge.title = msg.fallbackReason || "არჩეული მოდელი Google-ის მხარეს გადატვირთულია. Failover-მა ავტომატურად გადართო.";
             } else if (msg.model) {
               modelBadge.textContent = msg.model.replace("gemini-", "");
+              modelBadge.style.background = "";
+              modelBadge.style.color = "";
+              modelBadge.title = "";
             }
           }
         } else if (msg.type === "error") {

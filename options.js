@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const targetLangSelect = document.getElementById("targetLangSelect");
   const toneSelect = document.getElementById("toneSelect");
   const showFloatingIcon = document.getElementById("showFloatingIcon");
+  const enableHoverOriginal = document.getElementById("enableHoverOriginal");
   const enableFailover = document.getElementById("enableFailover");
   const customPrompt = document.getElementById("customPrompt");
   const resetPromptBtn = document.getElementById("resetPromptBtn");
@@ -67,6 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
       targetLanguage: "Georgian (ქართული)",
       tone: "natural",
       showFloatingIcon: true,
+      enableHoverOriginal: true,
       enableFailover: true,
       customPrompt: DEFAULT_SYSTEM_PROMPT
     },
@@ -80,6 +82,9 @@ document.addEventListener("DOMContentLoaded", () => {
       targetLangSelect.value = items.targetLanguage;
       toneSelect.value = items.tone;
       showFloatingIcon.checked = items.showFloatingIcon;
+      if (enableHoverOriginal) {
+        enableHoverOriginal.checked = items.enableHoverOriginal !== false;
+      }
       enableFailover.checked = items.enableFailover !== false;
       customPrompt.value = items.customPrompt || DEFAULT_SYSTEM_PROMPT;
 
@@ -215,6 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
       targetLanguage: targetLangSelect.value,
       tone: toneSelect.value,
       showFloatingIcon: showFloatingIcon.checked,
+      enableHoverOriginal: enableHoverOriginal ? enableHoverOriginal.checked : true,
       enableFailover: enableFailover.checked,
       customPrompt: customPrompt.value
     };

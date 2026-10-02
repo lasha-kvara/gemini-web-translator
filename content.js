@@ -116,6 +116,9 @@
     if (e.key === "Escape") {
       removeFloatingBtn();
       removeBubble();
+      if (typeof hideHoverTooltip === "function") {
+        hideHoverTooltip();
+      }
     }
   });
 
@@ -503,7 +506,7 @@
   }
 
   // ==========================================
-  // FULL WEBPAGE TRANSLATION ENGINE
+  // FULL WEBPAGE TRANSLATION ENGINE & HOVER-ORIGINAL
   // ==========================================
   let pageTranslationActive = false;
   let pageBannerElement = null;
@@ -512,6 +515,295 @@
   let allTrackedNodes = [];
   let isPageShowingOriginal = false;
   let abortPageTranslation = false;
+
+  // Hover-Original State & Elements
+  let hoverTooltipElement = null;
+  let currentHoverBlock = null;
+  let hoverTimer = null;
+  let hideHoverTimer = null;
+  let isMouseInsideTooltip = false;
+  let hoverOriginalEnabled = true;
+
+  try {
+    chrome.storage.sync.get({ enableHoverOriginal: true }, (items) => {
+      if (items && items.enableHoverOriginal !== undefined) {
+        hoverOriginalEnabled = items.enableHoverOriginal;
+      }
+    });
+  } catch (e) {}
+
+  function ensureHighlightStyle() {
+    if (document.getElementById("gemini-hover-highlight-style")) return;
+    const style = document.createElement("style");
+    style.id = "gemini-hover-highlight-style";
+    style.textContent = `
+      .gemini-translated-hover-target {
+        outline: 2px dashed #1a73e8 !important;
+        outline-offset: 3px !important;
+        background-color: rgba(26, 115, 232, 0.06) !important;
+        border-radius: 4px !important;
+        transition: outline 0.15s ease, background-color 0.15s ease !important;
+      }
+    `;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  function getOriginalTextForElement(el) {
+    if (!el || el === document.body || el === document.documentElement) return null;
+    if (hostElement && hostElement.contains(el)) return null;
+
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    const origPieces = [];
+    let hasTranslatedNode = false;
+    let textNode;
+
+    while ((textNode = walker.nextNode())) {
+      if (originalNodeValues.has(textNode)) {
+        origPieces.push(originalNodeValues.get(textNode));
+        if (translatedNodeValues.has(textNode)) {
+          hasTranslatedNode = true;
+        }
+      }
+    }
+
+    if (!hasTranslatedNode || origPieces.length === 0) {
+      return null;
+    }
+
+    let fullText = "";
+    for (const piece of origPieces) {
+      if (!piece) continue;
+      const trimmed = piece.trim();
+      if (!trimmed) continue;
+      if (fullText && !fullText.endsWith(" ") && !/^[\p{P}\s]/u.test(trimmed)) {
+        fullText += " ";
+      }
+      fullText += trimmed;
+    }
+
+    return fullText.length > 0 ? fullText : null;
+  }
+
+  function findHoverTargetBlock(target) {
+    if (!target || target === document.body || target === document.documentElement) return null;
+    if (hostElement && hostElement.contains(target)) return null;
+
+    const block = target.closest(
+      "p, li, h1, h2, h3, h4, h5, h6, blockquote, dt, dd, figcaption, td, th"
+    );
+    if (block && getOriginalTextForElement(block)) {
+      return block;
+    }
+
+    if (getOriginalTextForElement(target)) {
+      return target;
+    }
+
+    return null;
+  }
+
+  function createHoverTooltip() {
+    if (hoverTooltipElement) return;
+
+    hoverTooltipElement = document.createElement("div");
+    hoverTooltipElement.className = "gemini-hover-tooltip";
+    hoverTooltipElement.style.display = "none";
+    hoverTooltipElement.innerHTML = `
+      <div class="gemini-hover-header">
+        <div class="gemini-hover-header-left">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span class="gemini-hover-title">ორიგინალი ტექსტი</span>
+        </div>
+        <div class="gemini-hover-actions">
+          <button class="gemini-hover-copy-btn" title="ორიგინალის კოპირება">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+              <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+            </svg>
+            <span>კოპირება</span>
+          </button>
+          <button class="gemini-hover-close-btn" title="დახურვა">&times;</button>
+        </div>
+      </div>
+      <div class="gemini-hover-body"></div>
+    `;
+
+    hoverTooltipElement.addEventListener("mouseenter", () => {
+      isMouseInsideTooltip = true;
+      if (hideHoverTimer) {
+        clearTimeout(hideHoverTimer);
+        hideHoverTimer = null;
+      }
+    });
+
+    hoverTooltipElement.addEventListener("mouseleave", () => {
+      isMouseInsideTooltip = false;
+      hideHoverTooltip();
+    });
+
+    const closeBtn = hoverTooltipElement.querySelector(".gemini-hover-close-btn");
+    closeBtn.addEventListener("click", () => {
+      hideHoverTooltip();
+    });
+
+    shadowRoot.appendChild(hoverTooltipElement);
+  }
+
+  function positionHoverTooltip(block) {
+    if (!hoverTooltipElement) return;
+
+    const rect = block.getBoundingClientRect();
+    const tooltipRect = hoverTooltipElement.getBoundingClientRect();
+
+    const margin = 8;
+    const paddingScreen = 16;
+    let top = rect.top - tooltipRect.height - margin;
+    let left = rect.left;
+
+    if (top < paddingScreen) {
+      top = rect.bottom + margin;
+    }
+
+    if (top + tooltipRect.height > window.innerHeight - paddingScreen) {
+      top = window.innerHeight - tooltipRect.height - paddingScreen;
+    }
+
+    if (left + tooltipRect.width > window.innerWidth - paddingScreen) {
+      left = window.innerWidth - tooltipRect.width - paddingScreen;
+    }
+    if (left < paddingScreen) {
+      left = paddingScreen;
+    }
+
+    hoverTooltipElement.style.top = `${Math.round(top)}px`;
+    hoverTooltipElement.style.left = `${Math.round(left)}px`;
+  }
+
+  function showHoverTooltip(block) {
+    const origText = getOriginalTextForElement(block);
+    if (!origText) return;
+
+    ensureHighlightStyle();
+
+    if (currentHoverBlock && currentHoverBlock !== block) {
+      currentHoverBlock.classList.remove("gemini-translated-hover-target");
+    }
+
+    currentHoverBlock = block;
+    currentHoverBlock.classList.add("gemini-translated-hover-target");
+
+    initHost();
+    if (!hoverTooltipElement) {
+      createHoverTooltip();
+    }
+
+    const bodyEl = hoverTooltipElement.querySelector(".gemini-hover-body");
+    bodyEl.textContent = origText;
+
+    const copyBtn = hoverTooltipElement.querySelector(".gemini-hover-copy-btn");
+    copyBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+      </svg>
+      <span>კოპირება</span>
+    `;
+    copyBtn.classList.remove("copied");
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(origText).then(() => {
+        copyBtn.innerHTML = `<span>✓ კოპირებულია</span>`;
+        copyBtn.classList.add("copied");
+        setTimeout(() => {
+          copyBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+              <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+            </svg>
+            <span>კოპირება</span>
+          `;
+          copyBtn.classList.remove("copied");
+        }, 1500);
+      }).catch(() => {});
+    };
+
+    hoverTooltipElement.style.display = "flex";
+    positionHoverTooltip(block);
+  }
+
+  function hideHoverTooltip() {
+    if (hoverTimer) clearTimeout(hoverTimer);
+    if (hideHoverTimer) clearTimeout(hideHoverTimer);
+    hoverTimer = null;
+    hideHoverTimer = null;
+    isMouseInsideTooltip = false;
+
+    if (currentHoverBlock) {
+      currentHoverBlock.classList.remove("gemini-translated-hover-target");
+      currentHoverBlock = null;
+    }
+
+    if (hoverTooltipElement) {
+      hoverTooltipElement.style.display = "none";
+    }
+  }
+
+  function handlePageMouseOver(e) {
+    if (!pageTranslationActive || isPageShowingOriginal || !hoverOriginalEnabled) {
+      return;
+    }
+    if (hostElement && hostElement.contains(e.target)) {
+      return;
+    }
+
+    const targetBlock = findHoverTargetBlock(e.target);
+    if (!targetBlock) {
+      return;
+    }
+
+    if (targetBlock === currentHoverBlock) {
+      if (hideHoverTimer) {
+        clearTimeout(hideHoverTimer);
+        hideHoverTimer = null;
+      }
+      return;
+    }
+
+    if (hoverTimer) clearTimeout(hoverTimer);
+    if (hideHoverTimer) clearTimeout(hideHoverTimer);
+
+    hoverTimer = setTimeout(() => {
+      showHoverTooltip(targetBlock);
+    }, 120);
+  }
+
+  function handlePageMouseOut(e) {
+    if (!pageTranslationActive || !hoverTooltipElement || hoverTooltipElement.style.display === "none") {
+      return;
+    }
+    if (currentHoverBlock && (e.target === currentHoverBlock || currentHoverBlock.contains(e.target))) {
+      if (e.relatedTarget && currentHoverBlock.contains(e.relatedTarget)) {
+        return;
+      }
+
+      if (hoverTimer) clearTimeout(hoverTimer);
+      if (hideHoverTimer) clearTimeout(hideHoverTimer);
+
+      hideHoverTimer = setTimeout(() => {
+        if (!isMouseInsideTooltip) {
+          hideHoverTooltip();
+        }
+      }, 180);
+    }
+  }
+
+  document.addEventListener("mouseover", handlePageMouseOver, { passive: true });
+  document.addEventListener("mouseout", handlePageMouseOut, { passive: true });
+  window.addEventListener("scroll", () => {
+    if (hoverTooltipElement && hoverTooltipElement.style.display !== "none" && !isMouseInsideTooltip) {
+      hideHoverTooltip();
+    }
+  }, { passive: true });
 
   function triggerFullPageTranslation() {
     initHost();
@@ -581,6 +873,7 @@
   }
 
   function removePageBanner() {
+    hideHoverTooltip();
     if (pageBannerElement && pageBannerElement.parentNode) {
       pageBannerElement.parentNode.removeChild(pageBannerElement);
       pageBannerElement = null;
@@ -594,6 +887,7 @@
     }
 
     removeBubble();
+    hideHoverTooltip();
     removePageBanner();
 
     pageBannerElement = document.createElement("div");
@@ -612,6 +906,7 @@
       </div>
       <div class="gemini-page-banner-actions">
         <button class="gemini-banner-btn" id="geminiToggleOriginalBtn" style="display: none;">ორიგინალის ჩვენება</button>
+        <button class="gemini-banner-btn active" id="geminiToggleHoverBtn" style="display: none;" title="მაუსის მიტანისას ორიგინალის ჩვენება">👁️ Hover: ჩართულია</button>
         <button class="gemini-banner-btn" id="geminiRetryPageBtn" style="display: none;" title="მთლიანი გვერდის ხელახლა თარგმნა (ქეშის იგნორირებით)">🔄 ხელახლა</button>
         <button class="gemini-banner-btn danger" id="geminiCancelPageBtn">გაუქმება</button>
         <button class="gemini-banner-close" id="geminiCloseBannerBtn" title="დახურვა">&times;</button>
@@ -625,6 +920,7 @@
     const fillEl = pageBannerElement.querySelector("#geminiPageProgressFill");
     const pctEl = pageBannerElement.querySelector("#geminiPagePct");
     const toggleBtn = pageBannerElement.querySelector("#geminiToggleOriginalBtn");
+    const toggleHoverBtn = pageBannerElement.querySelector("#geminiToggleHoverBtn");
     const cancelBtn = pageBannerElement.querySelector("#geminiCancelPageBtn");
     const closeBtn = pageBannerElement.querySelector("#geminiCloseBannerBtn");
 
@@ -634,6 +930,7 @@
 
     cancelBtn.addEventListener("click", () => {
       abortPageTranslation = true;
+      hideHoverTooltip();
       for (const n of allTrackedNodes) {
         if (originalNodeValues.has(n)) {
           n.nodeValue = originalNodeValues.get(n);
@@ -734,10 +1031,38 @@
     toggleBtn.style.display = "inline-flex";
     toggleBtn.textContent = "ორიგინალის ჩვენება";
 
+    if (toggleHoverBtn) {
+      toggleHoverBtn.style.display = "inline-flex";
+
+      function updateHoverBtnUI() {
+        if (hoverOriginalEnabled) {
+          toggleHoverBtn.textContent = "👁️ Hover: ჩართულია";
+          toggleHoverBtn.classList.add("active");
+        } else {
+          toggleHoverBtn.textContent = "👁️ Hover: გამორთულია";
+          toggleHoverBtn.classList.remove("active");
+        }
+      }
+
+      updateHoverBtnUI();
+
+      toggleHoverBtn.onclick = () => {
+        hoverOriginalEnabled = !hoverOriginalEnabled;
+        try {
+          chrome.storage.sync.set({ enableHoverOriginal: hoverOriginalEnabled });
+        } catch (e) {}
+        updateHoverBtnUI();
+        if (!hoverOriginalEnabled) {
+          hideHoverTooltip();
+        }
+      };
+    }
+
     const retryPageBtn = pageBannerElement.querySelector("#geminiRetryPageBtn");
     if (retryPageBtn) {
       retryPageBtn.style.display = "inline-flex";
       retryPageBtn.onclick = () => {
+        hideHoverTooltip();
         for (const n of allTrackedNodes) {
           if (originalNodeValues.has(n)) {
             n.nodeValue = originalNodeValues.get(n);
@@ -748,6 +1073,7 @@
     }
 
     toggleBtn.addEventListener("click", () => {
+      hideHoverTooltip();
       if (!isPageShowingOriginal) {
         for (const n of allTrackedNodes) {
           if (originalNodeValues.has(n)) {

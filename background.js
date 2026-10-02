@@ -21,6 +21,7 @@ const DEFAULT_SETTINGS = {
   tone: "natural",
   showFloatingIcon: true,
   autoDetectLanguage: true,
+  enableHoverOriginal: true,
   enableFailover: true,
   customPrompt: DEFAULT_SYSTEM_PROMPT
 };

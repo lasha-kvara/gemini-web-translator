@@ -140,16 +140,24 @@
       <section class="section">
         <h2 class="section-title">📖 მორგებული ლექსიკონი & ტერმინოლოგია (Custom Glossary)</h2>
         <p class="description">
-          განსაზღვრეთ ტერმინები, რომელთა თარგმნაც გსურთ თქვენთვის სასურველი ფორმით (ან დატოვეთ უცვლელად უცხოურ ენაზე). ხელოვნური ინტელექტი მკაცრად დაიცავს ამ წესებს როგორც მონიშნული ტექსტის, ისე მთლიანი გვერდის თარგმნისას.
+          მართეთ თქვენი ტერმინები კატეგორიების მიხედვით. თითოეულ კატეგორიაში დამატებული სიტყვები ინახება დამოუკიდებლად. ხელოვნური ინტელექტი მკაცრად დაიცავს ამ წესებს როგორც მონიშნული ტექსტის, ისე მთლიანი გვერდის თარგმნისას.
         </p>
 
+        <!-- Category Tabs -->
+        <div class="glossary-category-tabs" id="glossaryCategoryTabs">
+          <!-- Populated dynamically via JS: IT & Dev, Academic, Custom + Add New Tab -->
+        </div>
+
         <div class="glossary-toolbar">
-          <div class="glossary-presets">
-            <span class="glossary-preset-label">სწრაფი შაბლონები:</span>
-            <button type="button" class="btn-preset" id="presetItBtn">💻 IT & Dev</button>
-            <button type="button" class="btn-preset" id="presetAcademicBtn">🎓 აკადემიური & ფილოსოფია</button>
+          <div class="glossary-scope-selector">
+            <span class="glossary-scope-label">თარგმნისას გამოყენება:</span>
+            <select id="glossaryApplyMode" class="glossary-scope-select">
+              <option value="all">🌐 ყველა კატეგორია ერთად (რეკომენდებული)</option>
+              <option value="active">🎯 მხოლოდ მიმდინარე კატეგორია</option>
+            </select>
           </div>
           <div class="glossary-actions">
+            <button type="button" class="btn-secondary btn-sm" id="resetCategoryBtn" title="ამ კატეგორიის საწყის შაბლონზე დაბრუნება">🔄 საწყისზე დაბრუნება</button>
             <button type="button" class="btn-secondary btn-sm" id="addGlossaryRowBtn">➕ ტერმინის დამატება</button>
             <button type="button" class="btn-secondary btn-sm danger-text" id="clearGlossaryBtn">🗑️ გასუფთავება</button>
           </div>
@@ -169,7 +177,7 @@
             </tbody>
           </table>
           <div id="glossaryEmptyMsg" class="glossary-empty" style="display: none;">
-            ლექსიკონი ცარიელია. დააჭირეთ „➕ ტერმინის დამატება“ ან აირჩიეთ მზა შაბლონი ზემოთ.
+            ამ კატეგორიაში ტერმინები არ არის. დააჭირეთ „➕ ტერმინის დამატება“ ახალი სიტყვის შესაყვანად.
           </div>
         </div>
       </section>

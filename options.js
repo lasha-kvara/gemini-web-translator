@@ -33,12 +33,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const clearCacheBtn = document.getElementById("clearCacheBtn");
 
   // Custom Glossary Elements
+  const glossaryCategoryTabs = document.getElementById("glossaryCategoryTabs");
+  const glossaryApplyMode = document.getElementById("glossaryApplyMode");
+  const resetCategoryBtn = document.getElementById("resetCategoryBtn");
   const glossaryTableBody = document.getElementById("glossaryTableBody");
   const glossaryEmptyMsg = document.getElementById("glossaryEmptyMsg");
   const addGlossaryRowBtn = document.getElementById("addGlossaryRowBtn");
   const clearGlossaryBtn = document.getElementById("clearGlossaryBtn");
-  const presetItBtn = document.getElementById("presetItBtn");
-  const presetAcademicBtn = document.getElementById("presetAcademicBtn");
 
   const IT_PRESETS = [
     { source: "Pipeline", target: "პაიპლაინი" },
@@ -60,6 +61,31 @@ document.addEventListener("DOMContentLoaded", () => {
     { source: "Hermeneutics", target: "ჰერმენევტიკა" }
   ];
 
+  const DEFAULT_CATEGORIES = {
+    it: {
+      id: "it",
+      name: "💻 IT & Dev",
+      isCustom: false,
+      items: JSON.parse(JSON.stringify(IT_PRESETS))
+    },
+    academic: {
+      id: "academic",
+      name: "🎓 აკადემიური & ფილოსოფია",
+      isCustom: false,
+      items: JSON.parse(JSON.stringify(ACADEMIC_PRESETS))
+    },
+    custom: {
+      id: "custom",
+      name: "📝 ჩემი ლექსიკონი",
+      isCustom: false,
+      items: []
+    }
+  };
+
+  let categoriesState = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+  let currentCatId = "it";
+  let applyModeState = "all";
+
   function escapeHtml(str) {
     if (!str) return "";
     return str
@@ -74,6 +100,101 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!glossaryTableBody || !glossaryEmptyMsg) return;
     const count = glossaryTableBody.querySelectorAll("tr").length;
     glossaryEmptyMsg.style.display = count === 0 ? "block" : "none";
+  }
+
+  function getTableRowsData() {
+    if (!glossaryTableBody) return [];
+    const rows = glossaryTableBody.querySelectorAll("tr");
+    const result = [];
+    rows.forEach((row) => {
+      const src = row.querySelector(".glossary-src")?.value?.trim();
+      const tgt = row.querySelector(".glossary-tgt")?.value?.trim();
+      if (src && tgt) {
+        result.push({ source: src, target: tgt });
+      }
+    });
+    return result;
+  }
+
+  function saveCurrentCategoryFromDOM() {
+    if (!categoriesState[currentCatId]) return;
+    categoriesState[currentCatId].items = getTableRowsData();
+    updateTabBadges();
+  }
+
+  function updateTabBadges() {
+    Object.keys(categoriesState).forEach((catId) => {
+      const badge = document.getElementById(`badge-${catId}`);
+      if (badge && categoriesState[catId]) {
+        badge.textContent = categoriesState[catId].items.length;
+      }
+    });
+  }
+
+  function renderCategoryTabs() {
+    if (!glossaryCategoryTabs) return;
+    glossaryCategoryTabs.innerHTML = "";
+
+    const catIds = Object.keys(categoriesState);
+    catIds.forEach((catId) => {
+      const cat = categoriesState[catId];
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `glossary-tab-btn ${catId === currentCatId ? "active" : ""}`;
+      btn.dataset.catId = catId;
+      btn.innerHTML = `
+        <span>${escapeHtml(cat.name)}</span>
+        <span class="glossary-count-badge" id="badge-${catId}">${cat.items.length}</span>
+        ${cat.isCustom ? `<span class="del-cat-btn" title="კატეგორიის წაშლა">&times;</span>` : ""}
+      `;
+
+      btn.addEventListener("click", (e) => {
+        if (e.target.classList.contains("del-cat-btn")) {
+          e.stopPropagation();
+          if (confirm(`წავშალოთ კატეგორია "${cat.name}"?`)) {
+            delete categoriesState[catId];
+            if (currentCatId === catId) {
+              currentCatId = "it";
+            }
+            renderCategoryTabs();
+            renderGlossaryTable(categoriesState[currentCatId]?.items || []);
+          }
+          return;
+        }
+
+        if (catId !== currentCatId) {
+          saveCurrentCategoryFromDOM();
+          currentCatId = catId;
+          renderCategoryTabs();
+          renderGlossaryTable(categoriesState[currentCatId]?.items || []);
+        }
+      });
+
+      glossaryCategoryTabs.appendChild(btn);
+    });
+
+    // Add Category button
+    const addCatBtn = document.createElement("button");
+    addCatBtn.type = "button";
+    addCatBtn.className = "glossary-tab-btn btn-add-category";
+    addCatBtn.innerHTML = `<span>➕ ახალი კატეგორია</span>`;
+    addCatBtn.addEventListener("click", () => {
+      const name = prompt("შეიყვანეთ ახალი კატეგორიის სახელი (მაგ. 🔬 მედიცინა, ⚖️ სამართალი):");
+      if (name && name.trim()) {
+        saveCurrentCategoryFromDOM();
+        const newId = "cat_" + Date.now();
+        categoriesState[newId] = {
+          id: newId,
+          name: name.trim(),
+          isCustom: true,
+          items: []
+        };
+        currentCatId = newId;
+        renderCategoryTabs();
+        renderGlossaryTable([]);
+      }
+    });
+    glossaryCategoryTabs.appendChild(addCatBtn);
   }
 
   function addGlossaryRow(source = "", target = "") {
@@ -96,30 +217,12 @@ document.addEventListener("DOMContentLoaded", () => {
     delBtn.addEventListener("click", () => {
       tr.remove();
       updateGlossaryEmptyState();
-      checkPresetMatch();
+      saveCurrentCategoryFromDOM();
     });
 
     glossaryTableBody.appendChild(tr);
     updateGlossaryEmptyState();
     return tr;
-  }
-
-  function checkPresetMatch() {
-    const current = getGlossaryData();
-    const isMatch = (preset) => {
-      if (current.length !== preset.length) return false;
-      return preset.every((p, idx) => 
-        p.source.toLowerCase() === current[idx].source.toLowerCase() &&
-        p.target.toLowerCase() === current[idx].target.toLowerCase()
-      );
-    };
-
-    if (presetItBtn) {
-      presetItBtn.classList.toggle("active", isMatch(IT_PRESETS));
-    }
-    if (presetAcademicBtn) {
-      presetAcademicBtn.classList.toggle("active", isMatch(ACADEMIC_PRESETS));
-    }
   }
 
   function renderGlossaryTable(entries) {
@@ -133,68 +236,54 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
     updateGlossaryEmptyState();
-    checkPresetMatch();
-  }
-
-  function getGlossaryData() {
-    if (!glossaryTableBody) return [];
-    const rows = glossaryTableBody.querySelectorAll("tr");
-    const result = [];
-    rows.forEach((row) => {
-      const src = row.querySelector(".glossary-src")?.value?.trim();
-      const tgt = row.querySelector(".glossary-tgt")?.value?.trim();
-      if (src && tgt) {
-        result.push({ source: src, target: tgt });
-      }
-    });
-    return result;
   }
 
   if (addGlossaryRowBtn) {
     addGlossaryRowBtn.addEventListener("click", () => {
       const newRow = addGlossaryRow();
       newRow?.querySelector(".glossary-src")?.focus();
-      checkPresetMatch();
+      saveCurrentCategoryFromDOM();
     });
   }
 
   if (glossaryTableBody) {
     glossaryTableBody.addEventListener("input", () => {
-      checkPresetMatch();
+      saveCurrentCategoryFromDOM();
     });
   }
 
   if (clearGlossaryBtn) {
     clearGlossaryBtn.addEventListener("click", () => {
       if (!glossaryTableBody || glossaryTableBody.querySelectorAll("tr").length === 0) return;
-      if (confirm("დარწმუნებული ხართ, რომ გსურთ მთლიანი ლექსიკონის გასუფთავება?")) {
+      if (confirm(`გავასუფთავოთ მიმდინარე კატეგორია?`)) {
         glossaryTableBody.innerHTML = "";
         updateGlossaryEmptyState();
-        checkPresetMatch();
+        saveCurrentCategoryFromDOM();
       }
     });
   }
 
-  function applyPreset(presetList) {
-    if (glossaryTableBody) {
-      glossaryTableBody.innerHTML = "";
-    }
-    presetList.forEach((item) => {
-      addGlossaryRow(item.source, item.target);
+  if (resetCategoryBtn) {
+    resetCategoryBtn.addEventListener("click", () => {
+      if (currentCatId === "it") {
+        categoriesState.it.items = JSON.parse(JSON.stringify(IT_PRESETS));
+        renderGlossaryTable(categoriesState.it.items);
+        updateTabBadges();
+      } else if (currentCatId === "academic") {
+        categoriesState.academic.items = JSON.parse(JSON.stringify(ACADEMIC_PRESETS));
+        renderGlossaryTable(categoriesState.academic.items);
+        updateTabBadges();
+      } else {
+        categoriesState[currentCatId].items = [];
+        renderGlossaryTable([]);
+        updateTabBadges();
+      }
     });
-    updateGlossaryEmptyState();
-    checkPresetMatch();
   }
 
-  if (presetItBtn) {
-    presetItBtn.addEventListener("click", () => {
-      applyPreset(IT_PRESETS);
-    });
-  }
-
-  if (presetAcademicBtn) {
-    presetAcademicBtn.addEventListener("click", () => {
-      applyPreset(ACADEMIC_PRESETS);
+  if (glossaryApplyMode) {
+    glossaryApplyMode.addEventListener("change", () => {
+      applyModeState = glossaryApplyMode.value;
     });
   }
 
@@ -237,6 +326,9 @@ document.addEventListener("DOMContentLoaded", () => {
       enableHoverOriginal: true,
       enableFailover: true,
       customGlossary: [],
+      glossaryCategories: null,
+      glossaryActiveCategoryId: "it",
+      glossaryApplyMode: "all",
       customPrompt: DEFAULT_SYSTEM_PROMPT
     },
     (items) => {
@@ -253,7 +345,28 @@ document.addEventListener("DOMContentLoaded", () => {
         enableHoverOriginal.checked = items.enableHoverOriginal !== false;
       }
       enableFailover.checked = items.enableFailover !== false;
-      renderGlossaryTable(items.customGlossary || []);
+
+      // Initialize Glossary Categories
+      if (items.glossaryCategories && typeof items.glossaryCategories === "object" && Object.keys(items.glossaryCategories).length > 0) {
+        categoriesState = items.glossaryCategories;
+      } else if (Array.isArray(items.customGlossary) && items.customGlossary.length > 0) {
+        // Upgrade from older flat customGlossary
+        categoriesState.it.items = items.customGlossary;
+      }
+
+      if (items.glossaryActiveCategoryId && categoriesState[items.glossaryActiveCategoryId]) {
+        currentCatId = items.glossaryActiveCategoryId;
+      } else {
+        currentCatId = "it";
+      }
+
+      if (items.glossaryApplyMode) {
+        applyModeState = items.glossaryApplyMode;
+        if (glossaryApplyMode) glossaryApplyMode.value = applyModeState;
+      }
+
+      renderCategoryTabs();
+      renderGlossaryTable(categoriesState[currentCatId]?.items || []);
       customPrompt.value = items.customPrompt || DEFAULT_SYSTEM_PROMPT;
 
       if (items.apiKey && items.apiKey.trim().length > 10) {
@@ -382,6 +495,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Save Settings
   saveBtn.addEventListener("click", () => {
+    saveCurrentCategoryFromDOM();
+
+    // Calculate effective glossary for translation
+    let effectiveGlossary = [];
+    if (applyModeState === "active") {
+      effectiveGlossary = categoriesState[currentCatId]?.items || [];
+    } else {
+      // Merge all categories without duplicates (case-insensitive source)
+      const seen = new Set();
+      Object.keys(categoriesState).forEach((catId) => {
+        const cat = categoriesState[catId];
+        if (cat && Array.isArray(cat.items)) {
+          cat.items.forEach((item) => {
+            if (item && item.source && item.target) {
+              const key = item.source.trim().toLowerCase();
+              if (!seen.has(key)) {
+                seen.add(key);
+                effectiveGlossary.push({ source: item.source.trim(), target: item.target.trim() });
+              }
+            }
+          });
+        }
+      });
+    }
+
     const newSettings = {
       apiKey: apiKeyInput.value.trim(),
       model: modelSelect.value,
@@ -390,7 +528,10 @@ document.addEventListener("DOMContentLoaded", () => {
       showFloatingIcon: showFloatingIcon.checked,
       enableHoverOriginal: enableHoverOriginal ? enableHoverOriginal.checked : true,
       enableFailover: enableFailover.checked,
-      customGlossary: getGlossaryData(),
+      customGlossary: effectiveGlossary,
+      glossaryCategories: categoriesState,
+      glossaryActiveCategoryId: currentCatId,
+      glossaryApplyMode: applyModeState,
       customPrompt: customPrompt.value
     };
 

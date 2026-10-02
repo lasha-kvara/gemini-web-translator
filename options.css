@@ -361,6 +361,14 @@ textarea#customPrompt {
   color: var(--primary);
 }
 
+.btn-preset.active {
+  background: #eff6ff !important;
+  border-color: #3b82f6 !important;
+  color: #1d4ed8 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
 .glossary-actions {
   display: flex;
   align-items: center;

@@ -96,11 +96,30 @@ document.addEventListener("DOMContentLoaded", () => {
     delBtn.addEventListener("click", () => {
       tr.remove();
       updateGlossaryEmptyState();
+      checkPresetMatch();
     });
 
     glossaryTableBody.appendChild(tr);
     updateGlossaryEmptyState();
     return tr;
+  }
+
+  function checkPresetMatch() {
+    const current = getGlossaryData();
+    const isMatch = (preset) => {
+      if (current.length !== preset.length) return false;
+      return preset.every((p, idx) => 
+        p.source.toLowerCase() === current[idx].source.toLowerCase() &&
+        p.target.toLowerCase() === current[idx].target.toLowerCase()
+      );
+    };
+
+    if (presetItBtn) {
+      presetItBtn.classList.toggle("active", isMatch(IT_PRESETS));
+    }
+    if (presetAcademicBtn) {
+      presetAcademicBtn.classList.toggle("active", isMatch(ACADEMIC_PRESETS));
+    }
   }
 
   function renderGlossaryTable(entries) {
@@ -114,6 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
     updateGlossaryEmptyState();
+    checkPresetMatch();
   }
 
   function getGlossaryData() {
@@ -134,6 +154,13 @@ document.addEventListener("DOMContentLoaded", () => {
     addGlossaryRowBtn.addEventListener("click", () => {
       const newRow = addGlossaryRow();
       newRow?.querySelector(".glossary-src")?.focus();
+      checkPresetMatch();
+    });
+  }
+
+  if (glossaryTableBody) {
+    glossaryTableBody.addEventListener("input", () => {
+      checkPresetMatch();
     });
   }
 
@@ -143,18 +170,20 @@ document.addEventListener("DOMContentLoaded", () => {
       if (confirm("დარწმუნებული ხართ, რომ გსურთ მთლიანი ლექსიკონის გასუფთავება?")) {
         glossaryTableBody.innerHTML = "";
         updateGlossaryEmptyState();
+        checkPresetMatch();
       }
     });
   }
 
   function applyPreset(presetList) {
-    const existing = getGlossaryData();
-    const existingSrcs = new Set(existing.map((e) => e.source.toLowerCase()));
+    if (glossaryTableBody) {
+      glossaryTableBody.innerHTML = "";
+    }
     presetList.forEach((item) => {
-      if (!existingSrcs.has(item.source.toLowerCase())) {
-        addGlossaryRow(item.source, item.target);
-      }
+      addGlossaryRow(item.source, item.target);
     });
+    updateGlossaryEmptyState();
+    checkPresetMatch();
   }
 
   if (presetItBtn) {
